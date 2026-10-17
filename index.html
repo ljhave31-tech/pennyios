@@ -720,5 +720,70 @@ $('hfab').onclick=openHelp;
 
 render();
 </script>
+<style>
+#a2hs{position:fixed;inset:0;z-index:300;display:none;align-items:flex-end;justify-content:center;background:rgba(20,28,24,.45);padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));opacity:0;transition:opacity .25s ease}
+#a2hs.show{display:flex}#a2hs.in{opacity:1}
+#a2hs .card{width:100%;max-width:420px;background:var(--card);color:var(--ink);border-radius:24px;padding:22px 20px 18px;box-shadow:0 20px 50px rgba(0,0,0,.3);transform:translateY(24px);transition:transform .3s cubic-bezier(.2,1,.4,1);font-family:'Nunito',system-ui,sans-serif}
+#a2hs.in .card{transform:none}
+#a2hs .top{display:flex;align-items:center;gap:14px}
+#a2hs img{width:56px;height:56px;border-radius:14px;flex:none}
+#a2hs h3{margin:0;font-size:19px;font-weight:800}
+#a2hs p{margin:2px 0 0;font-size:14px;color:var(--mute)}
+#a2hs ol{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:10px;font-size:15px;font-weight:700}
+#a2hs li{display:flex;align-items:center;gap:10px;background:var(--sage-soft);border-radius:14px;padding:11px 12px}
+#a2hs li b{flex:none;width:24px;height:24px;border-radius:50%;background:var(--sage);color:#fff;display:grid;place-items:center;font-size:13px}
+#a2hs li svg{width:20px;height:20px;flex:none;vertical-align:middle;fill:none;stroke:var(--sage);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#a2hs [hidden]{display:none!important}
+#a2hs .btns{display:flex;gap:10px;margin-top:16px}
+#a2hs button{flex:1;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
+#a2hs .go{background:var(--sage);color:#fff}
+#a2hs .later{background:transparent;color:var(--mute)}
+</style>
+<div id="a2hs" role="dialog" aria-modal="true" aria-labelledby="a2hsT">
+  <div class="card">
+    <div class="top"><img src="icon-192.png" alt=""><div><h3 id="a2hsT">Add Penny to your home screen</h3><p>Open it like a real app, even offline.</p></div></div>
+    <ol id="a2hsSteps" hidden>
+      <li><b>1</b><span>Tap the Share button <svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span></li>
+      <li><b>2</b><span>Choose <u>Add to Home Screen</u></span></li>
+      <li><b>3</b><span>Tap <u>Add</u></span></li>
+    </ol>
+    <ol id="a2hsSafari" hidden><li><b>!</b><span>Open this page in <u>Safari</u> to add it to your home screen.</span></li></ol>
+    <div class="btns"><button class="later" id="a2hsLater">Maybe later</button><button class="go" id="a2hsGo">Install</button></div>
+  </div>
+</div>
+<script>
+(function(){
+  var KEY='penny-a2hs',WAIT=7*864e5,dp=null,shown=false;
+  function ls(f){try{return f()}catch(e){return null}}
+  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  if(standalone)return;
+  var last=+ls(function(){return localStorage.getItem(KEY)})||0;
+  if(Date.now()-last<WAIT)return;
+  var ua=navigator.userAgent||'';
+  var ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  var safari=ios&&!/CriOS|FxiOS|EdgiOS|OPiOS|GSA|FBAN|FBAV|Instagram/.test(ua);
+  var box=document.getElementById('a2hs'),go=document.getElementById('a2hsGo');
+  function hide(remember){box.classList.remove('in');setTimeout(function(){box.classList.remove('show')},250);if(remember)ls(function(){localStorage.setItem(KEY,String(Date.now()))})}
+  function show(){
+    if(shown)return;
+    if(ios){
+      shown=true;
+      document.getElementById(safari?'a2hsSteps':'a2hsSafari').hidden=false;
+      go.textContent='Got it';go.onclick=function(){hide(true)};
+    }else if(dp){
+      shown=true;
+      go.onclick=function(){hide(false);dp.prompt();dp.userChoice.finally(function(){dp=null})};
+    }else return;
+    box.classList.add('show');requestAnimationFrame(function(){requestAnimationFrame(function(){box.classList.add('in')})});
+  }
+  document.getElementById('a2hsLater').onclick=function(){hide(true)};
+  box.addEventListener('click',function(e){if(e.target===box)hide(true)});
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(ready&&!document.querySelector('.tour-shield,.tour-card'))show()});
+  window.addEventListener('appinstalled',function(){hide(true)});
+  var ready=false;function go2(){ready=true;var t0=Date.now();(function w(){var busy=document.querySelector('.tour-shield,.tour-card')||(typeof TOUR_KEY!=='undefined'&&!ls(function(){return localStorage.getItem(TOUR_KEY)}));if(busy&&Date.now()-t0<30000){setTimeout(w,1000)}else{setTimeout(show,700)}})()}
+  if(!document.getElementById('splash'))go2();
+  else{window.addEventListener('splash:done',go2,{once:true});setTimeout(function(){if(!ready)go2()},9000)}
+})();
+</script>
 </body>
 </html>
