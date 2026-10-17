@@ -574,6 +574,7 @@ function openHelp(){
   if(tour)return;
   open_('<h3>Help</h3><div style="color:var(--mute);font-size:13px;margin-bottom:12px">Pick a question and Penny will show you.</div>'
     +'<button class="faq all" onclick="helpGo(-1)"><span>Take the full tour</span>'+ic('chevr')+'</button>'
+    +(window.pennyInstallAvailable&&window.pennyInstallAvailable()?'<button class="faq" onclick="close_();setTimeout(pennyInstall,300)"><span>Add Penny to home screen</span>'+ic('chevr')+'</button>':'')
     +TOPICS.map((t,i)=>'<button class="faq" onclick="helpGo('+i+')"><span>'+t.q+'</span>'+ic('chevr')+'</button>').join(''));
 }
 function helpGo(i){close_();setTimeout(()=>startTour(i<0?undefined:TOPICS[i].s),300)}
@@ -747,40 +748,40 @@ render();
       <li><b>2</b><span>Choose <u>Add to Home Screen</u></span></li>
       <li><b>3</b><span>Tap <u>Add</u></span></li>
     </ol>
+    <ol id="a2hsMenu" hidden><li><b>1</b><span>Open your browser’s menu <strong>⋮</strong></span></li><li><b>2</b><span>Tap <u>Add to Home screen</u> or <u>Install app</u></span></li></ol>
     <ol id="a2hsSafari" hidden><li><b>!</b><span>Open this page in <u>Safari</u> to add it to your home screen.</span></li></ol>
     <div class="btns"><button class="later" id="a2hsLater">Maybe later</button><button class="go" id="a2hsGo">Install</button></div>
   </div>
 </div>
 <script>
 (function(){
-  var KEY='penny-a2hs',WAIT=7*864e5,dp=null,shown=false;
+  var KEY='penny-a2hs',WAIT=7*864e5,dp=null,shown=false,ready=false;
   function ls(f){try{return f()}catch(e){return null}}
   var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
-  if(standalone)return;
-  var last=+ls(function(){return localStorage.getItem(KEY)})||0;
-  if(Date.now()-last<WAIT)return;
+  window.pennyInstallAvailable=function(){return false};
+  if(standalone){ls(function(){localStorage.setItem('penny-installed','1')});return}
+  var recent=Date.now()-(+ls(function(){return localStorage.getItem(KEY)})||0)<WAIT;
   var ua=navigator.userAgent||'';
   var ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   var safari=ios&&!/CriOS|FxiOS|EdgiOS|OPiOS|GSA|FBAN|FBAV|Instagram/.test(ua);
   var box=document.getElementById('a2hs'),go=document.getElementById('a2hsGo');
+  var L={steps:document.getElementById('a2hsSteps'),safari:document.getElementById('a2hsSafari'),menu:document.getElementById('a2hsMenu')};
   function hide(remember){box.classList.remove('in');setTimeout(function(){box.classList.remove('show')},250);if(remember)ls(function(){localStorage.setItem(KEY,String(Date.now()))})}
-  function show(){
-    if(shown)return;
-    if(ios){
-      shown=true;
-      document.getElementById(safari?'a2hsSteps':'a2hsSafari').hidden=false;
-      go.textContent='Got it';go.onclick=function(){hide(true)};
-    }else if(dp){
-      shown=true;
-      go.onclick=function(){hide(false);dp.prompt();dp.userChoice.finally(function(){dp=null})};
-    }else return;
+  function present(){
+    L.steps.hidden=L.safari.hidden=L.menu.hidden=true;
+    if(ios){L[safari?'steps':'safari'].hidden=false;go.textContent='Got it';go.onclick=function(){hide(true)}}
+    else if(dp){go.textContent='Install';go.onclick=function(){hide(false);var e=dp;dp=null;e.prompt()}}
+    else{L.menu.hidden=false;go.textContent='Got it';go.onclick=function(){hide(true)}}
     box.classList.add('show');requestAnimationFrame(function(){requestAnimationFrame(function(){box.classList.add('in')})});
   }
+  function show(){if(shown||recent||(!ios&&!dp))return;shown=true;present()}
+  window.pennyInstallAvailable=function(){return !ls(function(){return localStorage.getItem('penny-installed')})};
+  window.pennyInstall=function(){shown=true;present()};
   document.getElementById('a2hsLater').onclick=function(){hide(true)};
   box.addEventListener('click',function(e){if(e.target===box)hide(true)});
   window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(ready&&!document.querySelector('.tour-shield,.tour-card'))show()});
-  window.addEventListener('appinstalled',function(){hide(true)});
-  var ready=false;function go2(){ready=true;var t0=Date.now();(function w(){var busy=document.querySelector('.tour-shield,.tour-card')||(typeof TOUR_KEY!=='undefined'&&!ls(function(){return localStorage.getItem(TOUR_KEY)}));if(busy&&Date.now()-t0<30000){setTimeout(w,1000)}else{setTimeout(show,700)}})()}
+  window.addEventListener('appinstalled',function(){hide(true);ls(function(){localStorage.setItem('penny-installed','1')});window.pennyInstallAvailable=function(){return false}});
+  function go2(){ready=true;var t0=Date.now();(function w(){var busy=document.querySelector('.tour-shield,.tour-card')||(typeof TOUR_KEY!=='undefined'&&!ls(function(){return localStorage.getItem(TOUR_KEY)}));if(busy&&Date.now()-t0<30000){setTimeout(w,1000)}else{setTimeout(show,700)}})()}
   if(!document.getElementById('splash'))go2();
   else{window.addEventListener('splash:done',go2,{once:true});setTimeout(function(){if(!ready)go2()},9000)}
 })();
