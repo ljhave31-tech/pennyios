@@ -298,7 +298,7 @@ P.list='<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6
 P.chevr='<path d="m9 18 6-6-6-6"/>';P.chevl='<path d="m15 18-6-6 6-6"/>';
 const ic=n=>`<svg class="ic" viewBox="0 0 24 24">${P[n]}</svg>`;
 const CATS={food:[ic('utensils'),'Food'],home:[ic('home'),'Home'],transport:[ic('bus'),'Transport'],fun:[ic('smile'),'Fun'],health:[ic('heart'),'Health'],shop:[ic('bag'),'Shopping'],bills:[ic('zap'),'Bills'],other:[ic('more'),'Other']};
-const INC={salary:[ic('brief'),'Salary'],gift:[ic('gift'),'Gift'],side:[ic('trend'),'Side income'],oinc:[ic('plus'),'Other']};
+const INC={salary:[ic('brief'),'Salary'],gift:[ic('gift'),'Gift'],side:[ic('trend'),'Side hustle'],oinc:[ic('plus'),'Other']};
 const ALL={...CATS,...INC};
 const KEY='penny-budget-v1';
 const todayPH=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
@@ -394,10 +394,10 @@ function render(){
   const C=2*Math.PI*52;
   const view=tx.filter(t=>(filt.type==='all'||t.type===filt.type)&&(!filt.cat||t.cat===filt.cat));
   const pill=filt.cat?`<button class="chip on" style="margin-bottom:8px" onclick="setCat(null)">${ALL[filt.cat][0]} ${ALL[filt.cat][1]} ${ic('x')}</button>`:'';
-  let msg='Add your first income or expense to get started.',warn=false;
+  let msg='Add your first budget or expense to get started.',warn=false;
   if(tx.length){
     if(plan&&exp>plan){msg='Over your planned budget this month — time to trim a little.';warn=true}
-    else if(left<0){msg='Spending is ahead of income this month.';warn=true}
+    else if(left<0){msg='Spending is ahead of budget this month.';warn=true}
     else if(base&&exp/base>.8){msg='Heads up: you\'ve used over 80% of your budget.';warn=true}
     else msg='Looking good — you\'re on track.';
   }
@@ -412,18 +412,18 @@ function render(){
   const tInc=upto.filter(t=>t.type==='inc').reduce((a,t)=>a+t.amt,0);
   const tExp=upto.filter(t=>t.type==='exp').reduce((a,t)=>a+t.amt,0);
   const sav=tInc-tExp, tpct=tInc?Math.min(tExp/tInc,1):(tExp?1:0);
-  const rp=T?tpct:pct, rover=T?tExp>tInc:(base&&exp>base), rlabel=T?'of income':(plan?'of plan':'of income');
+  const rp=T?tpct:pct, rover=T?tExp>tInc:(base&&exp>base), rlabel=T?'of budget':(plan?'of plan':'of budget');
   let nm=msg,nw=warn,nh=tx.length;
   if(T){nh=upto.length;nw=false;
-    if(!upto.length)nm='Add your first income or expense to get started.';
+    if(!upto.length)nm='Add your first budget or expense to get started.';
     else if(sav<0){nm='You\'ve spent more than you\'ve earned so far.';nw=true}
     else nm='You\'ve saved '+money(sav)+' so far.'}
   const monthStats=`
-      <button class="stat ${filt.type==='inc'?'on':''}" onclick="goAct('inc')">Income <b>${money(inc)}</b></button>
+      <button class="stat ${filt.type==='inc'?'on':''}" onclick="goAct('inc')">Budget <b>${money(inc)}</b></button>
       <button class="stat ${filt.type==='exp'?'on':''}" onclick="goAct('exp')">Spent <b>${money(exp)}</b></button>
       <button class="stat left ${left<0?'neg':''}" onclick="goAct('all')">Left <b>${left<0?'-':''}${money(left)}</b></button>`;
   const totalStats=`
-      <div class="stat">Total income <b>${money(tInc)}</b></div>
+      <div class="stat">Total budget <b>${money(tInc)}</b></div>
       <div class="stat">Total spent <b>${money(tExp)}</b></div>
       <div class="stat left ${sav<0?'neg':''}">Savings <b>${sav<0?'-':''}${money(sav)}</b></div>`;
   $('root').innerHTML=`
@@ -435,11 +435,11 @@ function render(){
     <div class="note ${nw?'warn':''}">${ic(nw?'warn':nh?'ok':'sprout')}<span>${nm}</span></div></div>
   <div class="sec"><h2>Categories</h2><button class="link" onclick="budgetSheet()">Set budgets</button></div>
   <div class="card">${catRows||'<div class="empty">No spending yet<br><button class="link" onclick="budgetSheet()">Set budgets to plan ahead</button></div>'}</div>
-  <div class="sec"><h2>Income</h2><button class="link" onclick="quickAdd('inc','salary')">Add income</button></div>
+  <div class="sec"><h2>Budget</h2><button class="link" onclick="quickAdd('inc','salary')">Add budget</button></div>
   <div class="card">${incRows}</div>
   <button class="card actlink" onclick="openAct()" aria-label="Open activity list"><div class="emo">${ic('list')}</div><div><div class="t">Activity</div><div class="d">${tx.length?tx.length+(tx.length===1?' entry':' entries')+' this month':'No entries yet'}</div></div>${ic('chevr')}</button>`;
   $('act').innerHTML=`<button class="back" onclick="closeAct()">${ic('chevl')}Back to overview</button>
-  <div class="sec"><h2>Activity</h2><div class="tabs"><button class="${filt.type==='all'?'on':''}" onclick="setT('all')">All</button><button class="${filt.type==='exp'?'on':''}" onclick="setT('exp')">Spent</button><button class="${filt.type==='inc'?'on':''}" onclick="setT('inc')">Income</button></div></div>
+  <div class="sec"><h2>Activity</h2><div class="tabs"><button class="${filt.type==='all'?'on':''}" onclick="setT('all')">All</button><button class="${filt.type==='exp'?'on':''}" onclick="setT('exp')">Spent</button><button class="${filt.type==='inc'?'on':''}" onclick="setT('inc')">Budget</button></div></div>
   <div class="card">${pill}${view.length?view.map(t=>`<div class="tx ${t.type}" onclick="editSheet(${t.id})"><div class="emo">${ALL[t.cat][0]}</div><div><div class="t">${esc(t.note||ALL[t.cat][1])}</div><div class="d">${ALL[t.cat][1]} · ${new Date(t.date+'T12:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div></div><div class="v">${t.type==='inc'?'+':'-'}${money(t.amt)}</div><button class="x" aria-label="Delete" onclick="event.stopPropagation();del(${t.id})">${ic('x')}</button></div>`).join(''):'<div class="empty">Nothing here yet<br><button class="link" onclick="addSheet()">Add an entry</button></div>'}</div>`;
   playRender();
 }
@@ -523,7 +523,7 @@ function drawForm(keep){
   if(!list[form.cat])form.cat=Object.keys(list)[0];
   const Q=pre||{},amt=keep?$('f-amt').value:(Q.amt||''),note=keep?$('f-note').value:(Q.note||''),date=keep?$('f-date').value:(Q.date||todayPH());
   open_(`<h3>${editId?'Edit entry':'New entry'}</h3>
-  <div class="seg"><button class="${form.type==='exp'?'on':''}" onclick="pickType('exp')">Expense</button><button class="${form.type==='inc'?'on':''}" onclick="pickType('inc')">Income</button></div>
+  <div class="seg"><button class="${form.type==='exp'?'on':''}" onclick="pickType('exp')">Expense</button><button class="${form.type==='inc'?'on':''}" onclick="pickType('inc')">Budget</button></div>
   <input class="big" id="f-amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="₱0" value="${amt}">
   <div class="chips" style="margin-top:10px;justify-content:center">${[100,500,1000,5000].map(n=>`<button class="chip" onclick="bump(${n})">+₱${n.toLocaleString()}</button>`).join('')}</div>
   <label>Category</label><div class="chips">${Object.entries(list).map(([k,v])=>`<button class="chip ${form.cat===k?'on':''}" onclick="pickCat('${k}')">${v[0]} ${v[1]}</button>`).join('')}</div>
@@ -556,8 +556,8 @@ const FULL=['welcome','month','glance','savings','categories','add','activity','
 const TOPICS=[
   {q:'How do I see all my entries?',s:['activity']},
   {q:'How do I add an expense?',s:['add','quickadd']},
-  {q:'How do I add income?',s:['income']},
-  {q:'What do Income, Spent and Left mean?',s:['stats']},
+  {q:'How do I add budget?',s:['income']},
+  {q:'What do Budget, Spent and Left mean?',s:['stats']},
   {q:'What does the ring show?',s:['ring']},
   {q:'How do I set a spending limit?',s:['budgets']},
   {q:'How do I edit or delete an entry?',s:['edit']},
@@ -591,20 +591,20 @@ async function startTour(ids){
   const cat={
     welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a 30-second tour to see how everything works.',next:'Start tour',back:'Skip',backA:'skip'},
     month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today.',els:()=>[q('.month')],r:99},
-    glance:{title:'Your month at a glance',text:'The ring shows how much of your income you\u2019ve spent. Income is money coming in, Spent is money going out, and Left is what\u2019s still yours to use.',els:()=>[kid(0)]},
+    glance:{title:'Your month at a glance',text:'The ring shows how much of your budget you\u2019ve spent. Budget is money coming in, Spent is money going out, and Left is what\u2019s still yours to use.',els:()=>[kid(0)]},
     savings:{title:'See your savings',text:'Tap Savings to see everything you\u2019ve saved so far, added up across all months. Tap again to come back.',els:()=>[q('.hnav')],r:99},
     categories:{title:'Spending by category',text:'See where your money goes. Tap a category to see just its entries, or choose Set budgets to give each one a monthly limit.',els:()=>[kid(1),kid(2)],maxH:300},
     add:{title:'Add an entry',text:'Tap Add whenever you spend or earn something. Pick a category, enter the amount, and save.',els:()=>[q('#add')],r:99},
-    activity:{title:'Your activity',text:'Tap here to see every entry you\u2019ve added this month. Tap one to edit it, or use All, Spent and Income to filter. A Back button brings you home.',els:()=>[kid(5)],r:22},
+    activity:{title:'Your activity',text:'Tap here to see every entry you\u2019ve added this month. Tap one to edit it, or use All, Spent and Budget to filter. A Back button brings you home.',els:()=>[kid(5)],r:22},
     help:{title:'Need a reminder?',text:'Tap this button any time, pick a question, and Penny will show you the answer.',els:()=>[q('#hfab')],r:99},
-    final:{w:1,last:1,title:'You\u2019re all set',text:'Start by adding your first income or expense. Penny is here whenever you need it.',next:'Add my first entry',back:'Done',backA:'done'},
-    stats:{title:'Income, Spent and Left',text:'Income is money coming in. Spent is money going out. Left is what remains this month: income minus spent. Tap Income or Spent to see those entries.',els:()=>[q('#root .stats')],r:18},
-    ring:{title:'What the ring shows',text:'The ring fills as you spend. It shows the share of your income used, or of your total budget once you\u2019ve set budgets, and turns red when you go over.',els:()=>[q('#root .ring')],r:99},
+    final:{w:1,last:1,title:'You\u2019re all set',text:'Start by adding your first budget or expense. Penny is here whenever you need it.',next:'Add my first entry',back:'Done',backA:'done'},
+    stats:{title:'Budget, Spent and Left',text:'Budget is money coming in. Spent is money going out. Left is what remains this month: budget minus spent. Tap Budget or Spent to see those entries.',els:()=>[q('#root .stats')],r:18},
+    ring:{title:'What the ring shows',text:'The ring fills as you spend. It shows the share of your budget used, or of your plan once you\u2019ve set category budgets, and turns red when you go over.',els:()=>[q('#root .ring')],r:99},
     budgets:{title:'Set a spending limit',text:'Tap Set budgets, then enter a monthly limit for each category. Each category bar shows how close you are, and turns red if you go over.',els:()=>[links()[0]],r:99},
-    income:{title:'Add income',text:'Tap Add income, or the + next to Salary, Gift or another income type. It goes straight into this month\u2019s Income total.',els:()=>[links()[1]],r:99},
+    income:{title:'Add budget',text:'Tap Add budget, or the + next to Salary, Gift or another budget type. It goes straight into this month\u2019s Budget total.',els:()=>[links()[1]],r:99},
     quickadd:{title:'Quick add',text:'You can also tap the + next to any category to add an entry to it directly.',els:()=>[q('#root .add')],r:99},
     edit:{view:'act',title:'Edit or delete',text:'Once you\u2019ve added entries, tap one to edit it, or tap the x on its right to delete it.',els:()=>[q('#act .tx')||q('#act .card')],r:16,maxH:300},
-    filter:{view:'act',title:'Filter your activity',text:'Use All, Spent and Income to filter the list. To see one category, go back and tap it.',els:()=>[q('#act .tabs')],r:99}
+    filter:{view:'act',title:'Filter your activity',text:'Use All, Spent and Budget to filter the list. To see one category, go back and tap it.',els:()=>[q('#act .tabs')],r:99}
   };
   const steps=(ids||FULL).map(id=>cat[id]).filter(Boolean);
   const shield=document.createElement('div'),hole=document.createElement('div'),card=document.createElement('div');
