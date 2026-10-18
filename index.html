@@ -91,6 +91,8 @@ button.cd:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
 .sec h2{margin:0;font-size:16px;font-weight:800}
 .link{border:0;background:none;color:var(--sage);font:inherit;font-weight:800;font-size:13.5px;cursor:pointer}
 .cat{display:grid;grid-template-columns:36px 1fr auto auto;gap:10px;align-items:center;padding:8px 0}
+.cat.cc{grid-template-columns:36px 1fr auto}
+.ctop{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .cat+.cat{border-top:1px solid var(--line)}
 .emo{width:36px;height:36px;border-radius:12px;background:var(--sage-soft);color:var(--sage);display:grid;place-items:center}
 .ic{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
@@ -116,6 +118,8 @@ button.stat{border:0;background:none;font:inherit;padding:4px 0;cursor:pointer;w
 .cat.click{cursor:pointer;margin:0 -8px;padding:8px;border-radius:14px}.cat.click:hover{background:var(--bg)}.cat.click.on{background:var(--sage-soft)}
 .tx{cursor:pointer}.tx:hover .t{color:var(--sage)}
 .tabs{display:flex;background:var(--card);border-radius:99px;padding:3px;box-shadow:var(--shadow)}.tabs button{border:0;background:none;color:var(--mute);font:inherit;font-weight:800;font-size:12.5px;padding:6px 11px;border-radius:99px;cursor:pointer}.tabs button.on{background:var(--sage);color:#fff}
+.foot{position:sticky;bottom:0;z-index:1;background:var(--card);margin-top:6px;padding:12px 0 calc(22px + env(safe-area-inset-bottom,0px));box-shadow:0 -12px 14px -12px rgba(0,0,0,.18)}
+.foot .save{margin-top:0}.foot .save.del{margin-top:10px}
 .save.del{background:var(--peach-soft);color:var(--bad);margin-top:10px}
 #mlabel{cursor:pointer}
 .add{border:0;background:none;color:var(--sage);cursor:pointer;padding:4px;display:grid;place-items:center}.add .ic{width:22px;height:22px}.add:hover{color:var(--ink)}
@@ -506,7 +510,7 @@ function render(){
   const incRows=Object.keys(INC).map(k=>`<div class="cat click ${filt.cat===k?'on':''}" onclick="setCat('${k}')" role="button" tabindex="0"><div class="emo">${INC[k][0]}</div><div><div class="t">${INC[k][1]}</div></div><div class="amt">${money(earned[k]||0)}</div><button class="add" aria-label="Add" onclick="event.stopPropagation();quickAdd('inc','${k}')">${ic('plus')}</button></div>`).join('');
   const catRows=Object.keys(CATS).map(k=>{
     const b=+S.budgets[k]||0,s=spent[k]||0,p=inc?Math.min(s/inc*100,100):(b?Math.min(s/b*100,100):(s?100:0));
-    return `<div class="cat click ${filt.cat===k?'on':''}" onclick="setCat('${k}')" role="button" tabindex="0"><div class="emo">${CATS[k][0]}</div><div><div class="t">${CATS[k][1]}</div><div class="bar"><i class="${b&&s>b?'over':''}" style="width:${p}%;--c:${CCOL[k]}"></i></div></div><div class="amt">${money(s)}${b?' / '+money(b):''}</div><button class="add" aria-label="Add" onclick="event.stopPropagation();quickAdd('exp','${k}')">${ic('plus')}</button></div>`}).join('');
+    return `<div class="cat cc click ${filt.cat===k?'on':''}" onclick="setCat('${k}')" role="button" tabindex="0"><div class="emo">${CATS[k][0]}</div><div><div class="ctop"><div class="t">${CATS[k][1]}</div><div class="amt">${money(s)}${b?' / '+money(b):''}</div></div><div class="bar"><i class="${b&&s>b?'over':''}" style="width:${p}%;--c:${CCOL[k]}"></i></div></div><button class="add" aria-label="Add" onclick="event.stopPropagation();quickAdd('exp','${k}')">${ic('plus')}</button></div>`}).join('');
   const T=hv==='total';
   const upto=S.tx.filter(t=>t.date.slice(0,7)<=month);
   const tInc=upto.filter(t=>t.type==='inc').reduce((a,t)=>a+t.amt,0);
@@ -577,7 +581,7 @@ $('bg').addEventListener('touchmove',e=>{
   const sh=e.target.closest('.sheet');
   if(!sh||sh.scrollHeight<=sh.clientHeight+1)e.preventDefault();
 },{passive:false});
-function open_(h){$('sheet').innerHTML='<button class="sheet-x" aria-label="Close" onclick="close_()">'+ic('x')+'</button>'+h;$('bg').classList.remove('closing');$('bg').classList.add('on');lockPage(true)}
+function open_(h){$('sheet').style.paddingBottom='';$('sheet').innerHTML='<button class="sheet-x" aria-label="Close" onclick="close_()">'+ic('x')+'</button>'+h;$('bg').classList.remove('closing');$('bg').classList.add('on');lockPage(true)}
 function close_(){
   const b=$('bg');if(!b.classList.contains('on')||b.classList.contains('closing'))return;
   b.classList.add('closing');
@@ -643,7 +647,8 @@ function drawForm(keep){
   <label>Category</label><div class="chips">${Object.entries(list).map(([k,v])=>`<button class="chip ${form.cat===k?'on':''}" onclick="pickCat('${k}')">${v[0]} ${v[1]}</button>`).join('')}</div>
   <label>Note (optional)</label><input id="f-note" type="text" maxlength="40" placeholder="e.g. Groceries" value="${esc(note)}">
   <label>Date</label><input id="f-date" type="date" value="${date}">
-  <button class="save" onclick="saveTx()">${editId?'Save changes':'Save'}</button>${editId?'<button class="save del" onclick="del(editId);close_()">Delete entry</button>':''}`);
+  <div class="foot"><button class="save" onclick="saveTx()">${editId?'Save changes':'Save'}</button>${editId?'<button class="save del" onclick="del(editId);close_()">Delete entry</button>':''}</div>`);
+  $('sheet').style.paddingBottom='0';
 }
 function saveTx(){
   const amt=parseFloat($('f-amt').value);
