@@ -14,12 +14,67 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:'Nunito',system-ui,-apple-system,sans-serif;font-weight:500}
 .app{max-width:520px;margin:0 auto;padding:18px 16px 110px}
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px}
 h1{font-size:22px;margin:0;font-weight:800}
 h1 small{display:block;font-size:13px;color:var(--mute);font-weight:500}
-.month{display:flex;align-items:center;gap:6px;background:var(--card);border-radius:99px;padding:4px;box-shadow:var(--shadow)}
+.month{display:flex;align-items:center;gap:2px;background:var(--card);border-radius:99px;padding:4px;box-shadow:var(--shadow)}
 .month button{border:0;background:none;color:var(--ink);font:inherit;font-size:18px;width:30px;height:30px;border-radius:50%;cursor:pointer}
-.month span{font-weight:700;font-size:14px;min-width:84px;text-align:center}
+.month span{font-weight:700;font-size:14px;min-width:78px;text-align:center}
+.month #cal{color:var(--sage);background:var(--sage-soft);margin-left:4px}
+.month #cal:focus-visible,.mcell:focus-visible,.yrnav button:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.sec .rt{display:flex;align-items:center;gap:10px}
+.dayb{border:0;background:var(--sage-soft);color:var(--sage);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .15s ease,background-color .2s}
+.dayb .ic{width:18px;height:18px}.dayb:active{transform:scale(.9)}.dayb:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.dsum{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--mute);font-weight:700;margin:0 0 4px}
+.dscroll{max-height:340px;overflow:auto;overscroll-behavior:contain}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:8px}
+.cw{text-align:center;font-size:11px;font-weight:800;color:var(--mute);padding:2px 0 4px}
+.cd{min-height:46px;border-radius:12px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:var(--bg);overflow:hidden}
+.cd.e{background:none}
+button.cd{border:0;font:inherit;color:inherit;cursor:pointer;width:100%;transition:transform .15s ease}
+button.cd:active{transform:scale(.92)}
+button.cd:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.cd .n{font-size:12px;font-weight:700;color:var(--mute)}
+.cd.has .n{color:var(--ink)}
+.cd .a{font-size:10px;font-weight:800;color:var(--ink)}
+.cd .cb{display:flex;width:70%;height:4px;border-radius:4px;overflow:hidden;margin-top:auto}
+.cd .cb i{display:block;height:100%}
+.cd.lo{background:#cfe7da}
+.cd.mid{background:#f9e3ae}
+.cd.hi{background:#f5b9ab}
+.clg{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:12px;font-size:12px;font-weight:700;color:var(--mute)}
+.clg span{display:inline-flex;align-items:center;gap:5px}
+.clg i{width:11px;height:11px;border-radius:4px;display:inline-block}
+.clg i.lo{background:#cfe7da}
+.clg i.mid{background:#f9e3ae}
+.clg i.hi{background:#f5b9ab}
+.clg em{font-style:normal;flex-basis:100%}
+.cd.today .n{color:var(--ink);font-weight:800}
+.cd.has .n{font-size:14px;font-weight:800}
+.cd.lo .n,.cd.mid .n,.cd.hi .n{color:#2f3a36}
+.cdots{display:flex;justify-content:center;gap:5px;margin-top:12px}
+.cdots i{width:6px;height:6px;border-radius:99px;background:var(--line);transition:width .3s var(--ease),background-color .3s}
+.cdots i.on{width:18px;background:var(--sage)}
+.sec .rt{gap:8px}
+.dsum b{color:var(--ink);font-weight:800;font-size:15px}
+.drow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:10px 0}
+.drow+.drow{border-top:1px solid var(--line)}
+.drow .t{font-weight:700;font-size:14px}.drow .v{font-weight:800;font-size:14.5px}
+.dbar{height:7px;border-radius:9px;background:var(--line);margin-top:7px;overflow:hidden}
+.dbar>div{display:flex;height:100%;border-radius:9px;overflow:hidden}.dbar i{display:block;height:100%}
+.yrnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.yrnav b{font-size:20px;font-weight:800}
+.yrnav button{border:0;background:var(--sage-soft);color:var(--sage);width:38px;height:38px;border-radius:50%;display:grid;place-items:center;cursor:pointer;transition:transform .15s ease}
+.yrnav button:active{transform:scale(.9)}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mcell{position:relative;border:2px solid var(--line);background:none;color:var(--ink);font:inherit;font-weight:800;font-size:15px;padding:15px 0 17px;border-radius:16px;cursor:pointer;transition:transform .15s ease,background-color .2s,border-color .2s,color .2s}
+.mcell:active{transform:scale(.94)}
+.mcell.now{border-color:var(--sage);color:var(--sage)}
+.mcell.on{background:var(--sage);border-color:var(--sage);color:#fff}
+.mcell i{position:absolute;left:50%;bottom:7px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--peach)}
+.mcell.on i{background:#fff}
+.mhint{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--mute);font-weight:700;margin:12px 2px 0}
+.mhint i{width:5px;height:5px;border-radius:50%;background:var(--peach)}
 .card{background:var(--card);border-radius:22px;padding:18px;box-shadow:var(--shadow);margin-bottom:14px}
 .hero{display:flex;align-items:center;gap:18px}
 .ring{position:relative;width:128px;height:128px;flex:none}
@@ -46,7 +101,7 @@ h1{display:flex;align-items:center;gap:12px}
 .chip{display:inline-flex;align-items:center;gap:6px}.chip .ic{width:15px;height:15px}
 .cat .t{font-weight:700;font-size:14px}
 .bar{height:7px;border-radius:9px;background:var(--line);margin-top:6px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:9px;background:var(--sage)}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--c,var(--sage))}
 .bar i.over{background:var(--bad)}
 .cat .amt{font-size:13px;color:var(--mute);text-align:right;font-weight:700}
 .tx{display:grid;grid-template-columns:36px 1fr auto auto;gap:10px;align-items:center;padding:9px 0}
@@ -267,7 +322,7 @@ html.tour-lock,html.tour-lock body,html.sheet-lock,html.sheet-lock body{overflow
 <div class="app">
   <header>
     <div class="brand"><h1><span class="logo"><svg class="ic" viewBox="0 0 24 24"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span><span>Penny<small>Your budget buddy</small></span></h1></div>
-    <div class="month"><button id="prev" aria-label="Previous month"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><span id="mlabel"></span><button id="next" aria-label="Next month"><svg class="ic" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button></div>
+    <div class="month"><button id="prev" aria-label="Previous month"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><span id="mlabel"></span><button id="next" aria-label="Next month"><svg class="ic" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></svg></button><button id="cal" aria-label="Open calendar" title="Pick a month"><svg class="ic" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></button></div>
   </header>
   <div id="root"></div>
   <div id="act" hidden></div>
@@ -300,6 +355,7 @@ const ic=n=>`<svg class="ic" viewBox="0 0 24 24">${P[n]}</svg>`;
 const CATS={food:[ic('utensils'),'Food'],home:[ic('home'),'Home'],transport:[ic('bus'),'Transport'],fun:[ic('smile'),'Fun'],health:[ic('heart'),'Health'],shop:[ic('bag'),'Shopping'],bills:[ic('zap'),'Bills'],other:[ic('more'),'Other']};
 const INC={salary:[ic('brief'),'Salary'],gift:[ic('gift'),'Gift'],side:[ic('trend'),'Side hustle'],oinc:[ic('plus'),'Other']};
 const ALL={...CATS,...INC};
+const CCOL={food:'#f2a58e',home:'#b0865a',transport:'#6fa8dc',fun:'#b58fd6',health:'#e57f9b',shop:'#f6c768',bills:'#4fb6b0',other:'#9aa6a0'};
 const KEY='penny-budget-v1';
 const todayPH=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
 let S={tx:[],budgets:{}},month=todayPH().slice(0,7),hv='month';
@@ -310,6 +366,49 @@ const money=n=>'₱'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const mlabel=m=>new Date(m+'-01T12:00').toLocaleDateString(undefined,{month:'short',year:'numeric'});
 const shift=d=>{const [y,m]=month.split('-').map(Number);const t=new Date(y,m-1+d,1);month=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0');mode='month';dir=d>0?1:-1;render()};
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function calSheet(y){
+  if(y==null)y=+month.slice(0,4);
+  const now=todayPH().slice(0,7),has=new Set(S.tx.map(t=>t.date.slice(0,7)));
+  open_(`<h3>Pick a month</h3>
+  <div class="yrnav"><button aria-label="Previous year" onclick="calSheet(${y-1})">${ic('chevl')}</button><b>${y}</b><button aria-label="Next year" onclick="calSheet(${y+1})">${ic('chevr')}</button></div>
+  <div class="mgrid">${MN.map((n,i)=>{const m=y+'-'+String(i+1).padStart(2,'0');return `<button class="mcell ${m===month?'on':''} ${m===now?'now':''}" onclick="pickMonth('${m}')">${n}${has.has(m)?'<i></i>':''}</button>`}).join('')}</div>
+  <div class="mhint"><i></i>Months with entries</div>
+  <button class="save" onclick="pickMonth('${now}')">Go to this month</button>`);
+}
+function dayHTML(){
+  const days={};
+  S.tx.filter(t=>t.type==='exp'&&t.date.startsWith(month)).forEach(t=>{const d=days[t.date]||(days[t.date]={tot:0,cat:{}});d.tot+=t.amt;d.cat[t.cat]=(d.cat[t.cat]||0)+t.amt});
+  const total=Object.values(days).reduce((a,d)=>a+d.tot,0);
+  const minc=S.tx.filter(t=>t.type==='inc'&&t.date.startsWith(month)).reduce((a,t)=>a+t.amt,0);
+  const mplan=Object.values(S.budgets).reduce((a,b)=>a+(+b||0),0),mbase=mplan||minc;
+  const lvl=v=>!mbase?'':v/mbase>=.5?'hi':v/mbase>=.25?'mid':'lo';
+  const [y,m]=month.split('-').map(Number),lead=new Date(y,m-1,1).getDay(),n=new Date(y,m,0).getDate(),today=todayPH();
+  const short=v=>v>=1e6?+(v/1e6).toFixed(1)+'M':v>=1e3?+(v/1e3).toFixed(v>=1e4?0:1)+'k':String(Math.round(v));
+  let cells='<div class="cd e"></div>'.repeat(lead);
+  for(let d=1;d<=n;d++){
+    const k=month+'-'+String(d).padStart(2,'0'),x=days[k];
+    const segs=x?Object.keys(CATS).filter(c=>x.cat[c]).map(c=>`<i style="flex:${x.cat[c]};background:${CCOL[c]}"></i>`).join(''):'';
+    cells+=`<button class="cd ${k===today?'today':''} ${x?'has '+lvl(x.tot):''}" onclick="pickDay('${k}')" aria-label="Show activity for ${MN[m-1]} ${d}"><span class="n">${d}</span></button>`;
+  }
+  return `<div class="dsum"><span>${mlabel(month)}</span><span>Total spent <b>${money(total)}</b></span></div>
+  <div class="cgrid">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(w=>`<div class="cw">${w}</div>`).join('')}${cells}</div>
+  ${mbase?'':'<div class="mhint">Add a budget to see daily warnings</div>'}`;
+}
+let slide=0,dayFilter=null;
+function slideAnim(d){const el=$('car');if(el&&!RM)el.animate([{opacity:0,transform:'translateX('+(d>0?36:-36)+'px)'},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.9,.25,1)'})}
+function pickDay(k){dayFilter=k;slide=1;mode='data';render();slideAnim(1)}
+function clearDay(){dayFilter=null;mode='data';render()}
+function slideTo(d){
+  dayFilter=null;slide=(slide+d+3)%3;mode='data';render();
+  const el=$('car');
+  if(el&&!RM)el.animate([{opacity:0,transform:'translateX('+(d>0?36:-36)+'px)'},{opacity:1,transform:'none'}],{duration:380,easing:'cubic-bezier(.2,.9,.25,1)'});
+}
+function pickMonth(m){
+  const o=month;close_();
+  if(m!==o){month=m;mode='month';dir=m>o?1:-1;render()}
+}
+$('cal').onclick=()=>calSheet();
 $('prev').onclick=()=>shift(-1);$('next').onclick=()=>shift(1);$('mlabel').onclick=()=>{const o=month;month=todayPH().slice(0,7);if(month!==o){mode='month';dir=month>o?1:-1;render()}};
 
 
@@ -396,7 +495,8 @@ function render(){
   const pill=filt.cat?`<button class="chip on" style="margin-bottom:8px" onclick="setCat(null)">${ALL[filt.cat][0]} ${ALL[filt.cat][1]} ${ic('x')}</button>`:'';
   let msg='Add your first budget or expense to get started.',warn=false;
   if(tx.length){
-    if(plan&&exp>plan){msg='Over your planned budget this month — time to trim a little.';warn=true}
+    if(base&&exp>=base){msg='You used all your budget.';warn=true}
+    else if(plan&&exp>plan){msg='Over your planned budget this month — time to trim a little.';warn=true}
     else if(left<0){msg='Spending is ahead of budget this month.';warn=true}
     else if(base&&exp/base>.8){msg='Heads up: you\'ve used over 80% of your budget.';warn=true}
     else msg='Looking good — you\'re on track.';
@@ -406,18 +506,33 @@ function render(){
   const incRows=Object.keys(INC).map(k=>`<div class="cat click ${filt.cat===k?'on':''}" onclick="setCat('${k}')" role="button" tabindex="0"><div class="emo">${INC[k][0]}</div><div><div class="t">${INC[k][1]}</div></div><div class="amt">${money(earned[k]||0)}</div><button class="add" aria-label="Add" onclick="event.stopPropagation();quickAdd('inc','${k}')">${ic('plus')}</button></div>`).join('');
   const catRows=Object.keys(CATS).map(k=>{
     const b=+S.budgets[k]||0,s=spent[k]||0,p=inc?Math.min(s/inc*100,100):(b?Math.min(s/b*100,100):(s?100:0));
-    return `<div class="cat click ${filt.cat===k?'on':''}" onclick="setCat('${k}')" role="button" tabindex="0"><div class="emo">${CATS[k][0]}</div><div><div class="t">${CATS[k][1]}</div><div class="bar"><i class="${b&&s>b?'over':''}" style="width:${p}%"></i></div></div><div class="amt">${money(s)}${b?' / '+money(b):''}</div><button class="add" aria-label="Add" onclick="event.stopPropagation();quickAdd('exp','${k}')">${ic('plus')}</button></div>`}).join('');
+    return `<div class="cat click ${filt.cat===k?'on':''}" onclick="setCat('${k}')" role="button" tabindex="0"><div class="emo">${CATS[k][0]}</div><div><div class="t">${CATS[k][1]}</div><div class="bar"><i class="${b&&s>b?'over':''}" style="width:${p}%;--c:${CCOL[k]}"></i></div></div><div class="amt">${money(s)}${b?' / '+money(b):''}</div><button class="add" aria-label="Add" onclick="event.stopPropagation();quickAdd('exp','${k}')">${ic('plus')}</button></div>`}).join('');
   const T=hv==='total';
   const upto=S.tx.filter(t=>t.date.slice(0,7)<=month);
   const tInc=upto.filter(t=>t.type==='inc').reduce((a,t)=>a+t.amt,0);
   const tExp=upto.filter(t=>t.type==='exp').reduce((a,t)=>a+t.amt,0);
   const sav=tInc-tExp, tpct=tInc?Math.min(tExp/tInc,1):(tExp?1:0);
-  const rp=T?tpct:pct, rover=T?tExp>tInc:(base&&exp>base), rlabel=T?'of budget':(plan?'of plan':'of budget');
+  const rp=T?tpct:pct, rover=T?tExp>tInc:(base&&exp>base), rlabel='left';
+  const rb=T?tInc:base,rsp=T?tExp:exp,rcat={};
+  (T?upto:tx).filter(t=>t.type==='exp').forEach(t=>rcat[t.cat]=(rcat[t.cat]||0)+t.amt);
+  const den=Math.max(rb,rsp);let soff=0;
+  const segs=den?Object.keys(CATS).filter(k=>rcat[k]).map(k=>{const len=rcat[k]/den*C;const s=`<circle cx="64" cy="64" r="52" fill="none" stroke="${CCOL[k]}" stroke-width="13" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-soff}"/>`;soff+=len;return s}).join(''):'';
+  const leftPct=rb?Math.max(0,Math.round((1-rsp/rb)*100)):0;
+  const ringSvg=`<svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="52" fill="none" stroke="${rb?(rover?'var(--bad)':'var(--sage)'):(rsp?'var(--bad)':'var(--line)')}" stroke-width="13"/><mask id="rm" maskUnits="userSpaceOnUse" x="0" y="0" width="128" height="128"><circle cx="64" cy="64" r="52" fill="none" stroke="#fff" stroke-width="16" stroke-dasharray="${C}" stroke-dashoffset="0"/></mask><g mask="url(#rm)">${segs}</g></svg>`;
   let nm=msg,nw=warn,nh=tx.length;
   if(T){nh=upto.length;nw=false;
     if(!upto.length)nm='Add your first budget or expense to get started.';
+    else if(tInc&&tExp>=tInc){nm='You used all your budget.';nw=true}
     else if(sav<0){nm='You\'ve spent more than you\'ve earned so far.';nw=true}
     else nm='You\'ve saved '+money(sav)+' so far.'}
+  const SL=['Categories','Activity','Spending per day'];
+  const df=dayFilter&&dayFilter.startsWith(month)?dayFilter:null;
+  const txRow=t=>`<div class="tx ${t.type}" onclick="editSheet(${t.id})"><div class="emo">${ALL[t.cat][0]}</div><div><div class="t">${esc(t.note||ALL[t.cat][1])}</div><div class="d">${ALL[t.cat][1]} · ${new Date(t.date+'T12:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div></div><div class="v">${t.type==='inc'?'+':'-'}${money(t.amt)}</div><button class="x" aria-label="Delete" onclick="event.stopPropagation();del(${t.id})">${ic('x')}</button></div>`;
+  let slideHTML=catRows;
+  if(slide===1&&df){const dl=new Date(df+'T12:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'}),dt=tx.filter(t=>t.date===df);
+    slideHTML=`<button class="chip on" style="margin-bottom:8px" onclick="clearDay()">${dl} ${ic('x')}</button>`+(dt.length?dt.map(txRow).join(''):'<div class="empty">No entries on this day</div>')}
+  else if(slide===1){const rc=tx.slice(0,5);slideHTML=rc.length?rc.map(txRow).join('')+'<div style="text-align:center;margin-top:8px"><button class="link" onclick="openAct()">See all activity</button></div>':'<div class="empty">No entries yet<br><button class="link" onclick="addSheet()">Add an entry</button></div>'}
+  else if(slide===2)slideHTML=dayHTML();
   const monthStats=`
       <button class="stat ${filt.type==='inc'?'on':''}" onclick="goAct('inc')">Budget <b>${money(inc)}</b></button>
       <button class="stat ${filt.type==='exp'?'on':''}" onclick="goAct('exp')">Spent <b>${money(exp)}</b></button>
@@ -428,16 +543,15 @@ function render(){
       <div class="stat left ${sav<0?'neg':''}">Savings <b>${sav<0?'-':''}${money(sav)}</b></div>`;
   $('root').innerHTML=`
   <div class="card"><div class="hero-head"><span class="hero-title">${T?'Savings to date':'This month'}</span><button class="hnav ${T?'back':''}" aria-label="${T?'Back to this month':'Show total savings'}" onclick="setH('${T?'month':'total'}')">${T?ic('chevl')+'This month':'Savings'+ic('chevr')}</button></div><div class="hero">
-    <div class="ring"><svg viewBox="0 0 128 128"><circle cx="64" cy="64" r="52" fill="none" stroke="var(--line)" stroke-width="13"/><circle cx="64" cy="64" r="52" fill="none" stroke="${rover?'var(--bad)':'var(--sage)'}" stroke-width="13" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-rp)}"/></svg>
-    <div class="mid"><b>${Math.round(rp*100)}%</b>${rlabel}</div></div>
+    <div class="ring">${ringSvg}
+    <div class="mid"><b>${leftPct}%</b>${rlabel}</div></div>
     <div class="stats">${T?totalStats:monthStats}
     </div></div>
     <div class="note ${nw?'warn':''}">${ic(nw?'warn':nh?'ok':'sprout')}<span>${nm}</span></div></div>
-  <div class="sec"><h2>Categories</h2><button class="link" onclick="budgetSheet()">Set budgets</button></div>
-  <div class="card">${catRows||'<div class="empty">No spending yet<br><button class="link" onclick="budgetSheet()">Set budgets to plan ahead</button></div>'}</div>
+  <div class="sec"><h2>${SL[slide]}</h2><div class="rt">${slide===0?'<button class="link" onclick="budgetSheet()">Set budgets</button>':''}<button class="dayb" aria-label="Previous view" onclick="slideTo(-1)">${ic('chevl')}</button><button class="dayb" aria-label="Next view" onclick="slideTo(1)">${ic('chevr')}</button></div></div>
+  <div class="card" id="car">${slideHTML}<div class="cdots">${SL.map((_,i)=>`<i class="${i===slide?'on':''}"></i>`).join('')}</div></div>
   <div class="sec"><h2>Budget</h2><button class="link" onclick="quickAdd('inc','salary')">Add budget</button></div>
-  <div class="card">${incRows}</div>
-  <button class="card actlink" onclick="openAct()" aria-label="Open activity list"><div class="emo">${ic('list')}</div><div><div class="t">Activity</div><div class="d">${tx.length?tx.length+(tx.length===1?' entry':' entries')+' this month':'No entries yet'}</div></div>${ic('chevr')}</button>`;
+  <div class="card">${incRows}</div>`;
   $('act').innerHTML=`<button class="back" onclick="closeAct()">${ic('chevl')}Back to overview</button>
   <div class="sec"><h2>Activity</h2><div class="tabs"><button class="${filt.type==='all'?'on':''}" onclick="setT('all')">All</button><button class="${filt.type==='exp'?'on':''}" onclick="setT('exp')">Spent</button><button class="${filt.type==='inc'?'on':''}" onclick="setT('inc')">Budget</button></div></div>
   <div class="card">${pill}${view.length?view.map(t=>`<div class="tx ${t.type}" onclick="editSheet(${t.id})"><div class="emo">${ALL[t.cat][0]}</div><div><div class="t">${esc(t.note||ALL[t.cat][1])}</div><div class="d">${ALL[t.cat][1]} · ${new Date(t.date+'T12:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})}</div></div><div class="v">${t.type==='inc'?'+':'-'}${money(t.amt)}</div><button class="x" aria-label="Delete" onclick="event.stopPropagation();del(${t.id})">${ic('x')}</button></div>`).join(''):'<div class="empty">Nothing here yet<br><button class="link" onclick="addSheet()">Add an entry</button></div>'}</div>`;
@@ -516,7 +630,7 @@ function quickAdd(type,cat){editId=null;pre=null;form={type,cat};drawForm()}
 function bump(n){const i=$('f-amt');i.value=(parseFloat(i.value)||0)+n}
 function editSheet(id){const t=S.tx.find(x=>x.id===id);if(!t)return;editId=id;pre={amt:t.amt,note:t.note,date:t.date};form={type:t.type,cat:t.cat};drawForm()}
 function addSheet(){
-  editId=null;pre=null;form=filt.cat&&INC[filt.cat]?{type:'inc',cat:filt.cat}:{type:'exp',cat:filt.cat&&CATS[filt.cat]?filt.cat:'food'};drawForm();
+  editId=null;pre=null;form=(filt.cat&&INC[filt.cat])||filt.type==='inc'?{type:'inc',cat:filt.cat&&INC[filt.cat]?filt.cat:'salary'}:{type:'exp',cat:filt.cat&&CATS[filt.cat]?filt.cat:'food'};drawForm();
 }
 function drawForm(keep){
   const list=form.type==='exp'?CATS:INC;
@@ -527,7 +641,7 @@ function drawForm(keep){
   <input class="big" id="f-amt" type="number" inputmode="decimal" min="0" step="0.01" placeholder="₱0" value="${amt}">
   <div class="chips" style="margin-top:10px;justify-content:center">${[100,500,1000,5000].map(n=>`<button class="chip" onclick="bump(${n})">+₱${n.toLocaleString()}</button>`).join('')}</div>
   <label>Category</label><div class="chips">${Object.entries(list).map(([k,v])=>`<button class="chip ${form.cat===k?'on':''}" onclick="pickCat('${k}')">${v[0]} ${v[1]}</button>`).join('')}</div>
-  <label>Note (optional)</label><input id="f-note" type="text" maxlength="40" placeholder="e.g. Coffee with Sam" value="${esc(note)}">
+  <label>Note (optional)</label><input id="f-note" type="text" maxlength="40" placeholder="e.g. Groceries" value="${esc(note)}">
   <label>Date</label><input id="f-date" type="date" value="${date}">
   <button class="save" onclick="saveTx()">${editId?'Save changes':'Save'}</button>${editId?'<button class="save del" onclick="del(editId);close_()">Delete entry</button>':''}`);
 }
@@ -583,7 +697,7 @@ async function startTour(ids){
   const topic=Array.isArray(ids);
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
   close_();
-  if(hv!=='month'){hv='month';mode='view';dir=-1;render();await wait(RM?0:700)}
+  if(hv!=='month'||slide!==0){hv='month';slide=0;mode='view';dir=-1;render();await wait(RM?0:700)}
   if(tour)return;
   if(!topic){try{localStorage.setItem(TOUR_KEY,'1')}catch(e){}}
   const root=$('root'),de=document.documentElement,q=s=>document.querySelector(s),kid=i=>root.children[i];
@@ -591,16 +705,16 @@ async function startTour(ids){
   const logo=(q('.logo')||{innerHTML:''}).innerHTML;
   const cat={
     welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a 30-second tour to see how everything works.',next:'Start tour',back:'Skip',backA:'skip'},
-    month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today.',els:()=>[q('.month')],r:99},
+    month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today, or tap the calendar icon to pick any month and year.',els:()=>[q('.month')],r:99},
     glance:{title:'Your month at a glance',text:'The ring shows how much of your budget you\u2019ve spent. Budget is money coming in, Spent is money going out, and Left is what\u2019s still yours to use.',els:()=>[kid(0)]},
     savings:{title:'See your savings',text:'Tap Savings to see everything you\u2019ve saved so far, added up across all months. Tap again to come back.',els:()=>[q('.hnav')],r:99},
     categories:{title:'Spending by category',text:'See where your money goes. Tap a category to see just its entries, or choose Set budgets to give each one a monthly limit.',els:()=>[kid(1),kid(2)],maxH:300},
     add:{title:'Add an entry',text:'Tap Add whenever you spend or earn something. Pick a category, enter the amount, and save.',els:()=>[q('#add')],r:99},
-    activity:{title:'Your activity',text:'Tap here to see every entry you\u2019ve added this month. Tap one to edit it, or use All, Spent and Budget to filter. A Back button brings you home.',els:()=>[kid(5)],r:22},
+    activity:{title:'Switch views',text:'Use the < and > buttons to flip between Categories, Activity and Spending per day. In Activity, tap See all to open the full list, where you can filter by All, Spent and Budget.',els:()=>[kid(1),kid(2)],maxH:300},
     help:{title:'Need a reminder?',text:'Tap this button any time, pick a question, and Penny will show you the answer.',els:()=>[q('#hfab')],r:99},
     final:{w:1,last:1,title:'You\u2019re all set',text:'Start by adding your first budget or expense. Penny is here whenever you need it.',next:'Add my first entry',back:'Done',backA:'done'},
     stats:{title:'Budget, Spent and Left',text:'Budget is money coming in. Spent is money going out. Left is what remains this month: budget minus spent. Tap Budget or Spent to see those entries.',els:()=>[q('#root .stats')],r:18},
-    ring:{title:'What the ring shows',text:'The ring fills as you spend. It shows the share of your budget used, or of your plan once you\u2019ve set category budgets, and turns red when you go over.',els:()=>[q('#root .ring')],r:99},
+    ring:{title:'What the ring shows',text:'The ring starts as your full budget (100%). Each expense takes a slice in its category\u2019s color, and the green that\u2019s left is what you can still spend. It turns red when you go over.',els:()=>[q('#root .ring')],r:99},
     budgets:{title:'Set a spending limit',text:'Tap Set budgets, then enter a monthly limit for each category. Each category bar shows how close you are, and turns red if you go over.',els:()=>[links()[0]],r:99},
     income:{title:'Add budget',text:'Tap Add budget, or the + next to Salary, Gift or another budget type. It goes straight into this month\u2019s Budget total.',els:()=>[links()[1]],r:99},
     quickadd:{title:'Quick add',text:'You can also tap the + next to any category to add an entry to it directly.',els:()=>[q('#root .add')],r:99},
