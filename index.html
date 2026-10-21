@@ -363,8 +363,24 @@ const CCOL={food:'#f2a58e',home:'#b0865a',transport:'#6fa8dc',fun:'#b58fd6',heal
 const KEY='penny-budget-v1';
 const todayPH=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Manila'});
 let S={tx:[],budgets:{}},month=todayPH().slice(0,7),hv='month';
-try{const r=localStorage.getItem(KEY);if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
-const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+try{
+  const r=localStorage.getItem(KEY);
+  if(r){
+    const saved=JSON.parse(r);
+    if(!saved||typeof saved!=='object'||Array.isArray(saved)||!Array.isArray(saved.tx)||!saved.budgets||typeof saved.budgets!=='object'||Array.isArray(saved.budgets))throw new Error('Saved data has an invalid format');
+    S={tx:saved.tx,budgets:saved.budgets};
+  }
+}catch(e){
+  console.error('Penny could not load saved data',e);
+  setTimeout(()=>alert('Penny could not read your saved data. Browser storage may be unavailable or the saved data may be invalid.'),0);
+}
+const save=()=>{
+  try{localStorage.setItem(KEY,JSON.stringify(S))}
+  catch(e){
+    console.error('Penny could not save data',e);
+    alert('Penny could not save your data in this browser. Check that browser storage is enabled. Your latest changes may not persist.');
+  }
+};
 const $=id=>document.getElementById(id);
 const money=n=>'₱'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
