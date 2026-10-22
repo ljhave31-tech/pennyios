@@ -1204,10 +1204,18 @@ async function start(FIREBASE_CONFIG){
       if(create&&pw!==E.confirm.value)return say('Passwords do not match.');
       go.disabled=true;go.textContent=create?'Creating…':'Logging in…';
       try{
-        await A.setPersistence(auth,keep?A.browserLocalPersistence:A.browserSessionPersistence);
-        if(create)await A.createUserWithEmailAndPassword(auth,u+DOM,pw);else await A.signInWithEmailAndPassword(auth,u+DOM,pw);
+        const within=(p,ms,step)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej({code:'penny/timeout',step}),ms))]);
+        // saving the "stay logged in" choice must never block logging in
+        try{await within(A.setPersistence(auth,keep?A.browserLocalPersistence:A.browserSessionPersistence),4000,'persistence')}
+        catch(px){console.warn('Penny could not set login persistence',px)}
+        const cred=await within(create?A.createUserWithEmailAndPassword(auth,u+DOM,pw):A.signInWithEmailAndPassword(auth,u+DOM,pw),20000,'sign-in');
         ls(()=>{localStorage.setItem(HAS,'1');localStorage.setItem(REM,keep?'1':'0');if(keep)localStorage.setItem(LAST,u);else localStorage.removeItem(LAST)});
-      }catch(x){say(msgFor(x,create));go.disabled=false;go.textContent=create?'Create account':'Log in'}
+        // if the auth listener has not opened the app shortly after a successful login, do it directly
+        setTimeout(()=>{if(auth.currentUser&&!ov.hidden){console.warn('Penny: opening app after login');try{if(!uid)listen(auth.currentUser)}catch(e){console.error(e)}hideAuth()}},3000);
+      }catch(x){
+        console.error('Penny login error',x);
+        say(x&&x.code==='penny/timeout'?'Login is taking too long ('+x.step+'). Check your internet, turn off ad blockers or shields for this site, then try again.':msgFor(x,create));
+        go.disabled=false;go.textContent=create?'Create account':'Log in'}
     };
     setTimeout(()=>{const t=card.querySelector(last?'#ap':'#au');if(t)t.focus({preventScroll:true})},50);
   }
