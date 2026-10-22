@@ -1219,9 +1219,24 @@ async function start(FIREBASE_CONFIG){
     if(!e.target.closest('.out'))return;
     closeMenu();
     if(hasPending()&&!confirm('Some changes have not synced yet. If you log out now they will be lost. Log out anyway?'))return;
-    await A.signOut(auth);
-    S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));render();
+    try{await A.signOut(auth)}catch(x){console.error('Penny sign-out error',x)}
+    toLogin();
   };
+  /* Wipe this device's view and go straight to the login screen */
+  function toLogin(){
+    was=false;who='';btn.hidden=true;window.pennyName='';
+    try{window.pennyGreet()}catch(x){}
+    ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
+    allowOffline=false;
+    showAuth();draw(ls(()=>localStorage.getItem(HAS))?'login':'create'); // login first, so nothing below can block it
+    try{
+      S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));
+      if(typeof close_==='function')close_();
+      if(av){av=false;actHist=false;$('act').hidden=true;$('root').hidden=false}
+      filt.type='all';filt.cat=null;slide=0;dayFilter=null;hv='month';
+      scrollTo(0,0);render();
+    }catch(x){console.error('Penny could not reset the view',x)}
+  }
 
   let was=false;
   A.onAuthStateChanged(auth,u=>{
@@ -1231,7 +1246,7 @@ async function start(FIREBASE_CONFIG){
       ls(()=>{sessionStorage.setItem(SIGNED,'1');if(localStorage.getItem(REM)!=='0')localStorage.setItem(SIGNED,'1');else localStorage.removeItem(SIGNED)});
       listen(u);hideAuth();
     }else{
-      if(was){was=false;S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));render()} // logged out (maybe in another tab): wipe this view
+      if(was){toLogin();return} // logged out (maybe in another tab): wipe this view and show login
       who='';btn.hidden=true;window.pennyName='';window.pennyGreet();ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
       showAuth();draw(ls(()=>localStorage.getItem(HAS))?'login':'create');
     }
