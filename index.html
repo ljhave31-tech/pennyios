@@ -234,6 +234,27 @@ html.pre header,html.pre .fab,html.pre .hfab,html.pre #root>*{opacity:0}
 .hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .acct{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:99px;background:var(--sage-soft);color:var(--sage);font:inherit;font-weight:800;font-size:13px;padding:9px 14px;cursor:pointer;transition:transform .15s ease,background-color .2s}
 .acct[hidden]{display:none}.acct:active{transform:scale(.94)}.acct:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+/* ===== Profile screen ===== */
+#prof{position:fixed;inset:0;z-index:70;background:var(--bg);display:flex;flex-direction:column;animation:fadeIn .2s ease both}
+#prof[hidden]{display:none}
+.p-bar{display:flex;align-items:center;gap:12px;width:100%;max-width:520px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top,0px)) 16px 8px;flex:none}
+.p-bar h2{margin:0;font-size:20px;font-weight:800}
+.p-back{border:0;background:var(--card);color:var(--ink);width:40px;height:40px;border-radius:50%;box-shadow:var(--shadow);display:grid;place-items:center;cursor:pointer;padding:0;transition:transform .15s ease}
+.p-back:active{transform:scale(.92)}.p-back:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+.p-body{flex:1;overflow:auto;padding:6px 16px 24px;-webkit-overflow-scrolling:touch}
+.p-in{max-width:520px;margin:0 auto}
+.p-hero{text-align:center;padding:14px 0 20px}
+.p-av{width:88px;height:88px;border-radius:50%;background:var(--sage);color:#fff;font-size:38px;font-weight:800;display:grid;place-items:center;margin:0 auto 14px}
+.p-hero h3{margin:0;font-size:22px;font-weight:800;overflow-wrap:anywhere}
+.p-hero p{margin:3px 0 0;color:var(--mute);font-size:14px;font-weight:700}
+.p-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;font-size:14px;color:var(--mute);font-weight:700}
+.p-row b{color:var(--ink);font-weight:800;text-align:right;overflow-wrap:anywhere}
+.p-row+.p-row{border-top:1px solid var(--line)}
+.p-msg{margin-top:10px;font-size:13.5px;font-weight:700;color:var(--sage);min-height:1.2em}.p-msg.bad{color:var(--bad)}
+#prof .save[disabled]{opacity:.5;cursor:default}
+.p-foot{flex:none;background:var(--card);box-shadow:0 -12px 14px -12px rgba(0,0,0,.18);padding:12px 16px calc(16px + env(safe-area-inset-bottom,0px))}
+.p-foot>div{max-width:520px;margin:0 auto}
+.p-foot .save{margin-top:0}
 #auth{position:fixed;inset:0;z-index:80;background:var(--bg);display:grid;place-items:center;overflow:auto;padding:24px}
 #auth[hidden],#authCard[hidden]{display:none}
 #auth::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(700px 420px at 85% -5%,var(--sage-soft),transparent 65%)}
@@ -533,9 +554,10 @@ const TIPS=[
 "Have you added to your emergency fund lately?"];
 function greet(){
   const h=new Date().getHours(),part=h<12?'Good morning':h<18?'Good afternoon':'Good evening';
-  let n=(window.pennyName||'').split(/[._-]/)[0];n=n.charAt(0).toUpperCase()+n.slice(1);
+  let n=window.pennyShow||'';
+  if(!n){n=(window.pennyName||'').split(/[._-]/)[0];n=n.charAt(0).toUpperCase()+n.slice(1)}
   const day=Math.floor(Date.parse(todayPH()+'T00:00:00Z')/864e5);
-  $('greet').textContent=part+(n?', '+n:'');
+  $('greet').textContent=part+(n?' '+n:'');
   $('gtip').textContent=TIPS[((day%TIPS.length)+TIPS.length)%TIPS.length];
 }
 window.pennyGreet=greet;greet();setInterval(greet,60000);
@@ -1198,7 +1220,7 @@ async function start(FIREBASE_CONFIG){
   const stop=()=>{unsubs.forEach(f=>f());unsubs=[];uid=null;remote=new Map();clearTimeout(connT);connT=0;bad=''};
 
   /* ----- login / create account screens ----- */
-  const DOM='@penny-users.app',HAS=KEY+':has-account',LAST=KEY+':last-user',REM=KEY+':remember';
+  const NAME_RE=/^[\p{L}\p{M}][\p{L}\p{M} .'’-]{0,29}$/u,DOM='@penny-users.app',HAS=KEY+':has-account',LAST=KEY+':last-user',REM=KEY+':remember';
   const msgFor=(e,create)=>({
     'auth/email-already-in-use':'That username is already taken. Try another one.',
     'auth/weak-password':'Password must be at least 6 characters.',
@@ -1218,6 +1240,7 @@ async function start(FIREBASE_CONFIG){
       <h2 id="authT">${create?'Create your account':'Welcome back'}</h2>
       <p>${create?'Pick a username and password to start saving your budget.':'Log in to see your budget.'}</p></div>
     <form id="authForm" novalidate>
+      ${create?'<label for="an">Enter your name</label><input id="an" name="fullname" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="30" placeholder="e.g. Jhal Rvin">':''}
       <label for="au">Username</label>
       <input id="au" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20" value="${esc(last)}">
       <label for="ap">Password</label>
@@ -1235,6 +1258,8 @@ async function start(FIREBASE_CONFIG){
     f.onsubmit=async e=>{
       e.preventDefault();say('');
       const E=f.elements,u=E.username.value.trim().toLowerCase(),pw=E.password.value,keep=E.remember.checked;
+      const fullName=create?E.fullname.value.trim().replace(/\s+/g,' '):'';
+      if(create&&!NAME_RE.test(fullName))return say('Enter your name (letters and spaces, up to 30 characters).');
       if(!/^[a-z0-9._-]{3,20}$/.test(u))return say('Username must be 3–20 characters: letters, numbers, dot, dash or underscore.');
       if(pw.length<6)return say('Password must be at least 6 characters.');
       if(create&&pw!==E.confirm.value)return say('Passwords do not match.');
@@ -1245,6 +1270,10 @@ async function start(FIREBASE_CONFIG){
         try{await within(A.setPersistence(auth,keep?A.browserLocalPersistence:A.browserSessionPersistence),4000,'persistence')}
         catch(px){console.warn('Penny could not set login persistence',px)}
         const cred=await within(create?A.createUserWithEmailAndPassword(auth,u+DOM,pw):A.signInWithEmailAndPassword(auth,u+DOM,pw),20000,'sign-in');
+        if(create&&fullName){ // username can't hold spaces, so the display name is stored on the profile
+          try{await within(A.updateProfile(cred.user,{displayName:fullName}),6000,'profile');window.pennyShow=fullName;window.pennyGreet()}
+          catch(px){console.warn('Penny could not save display name',px)}
+        }
         ls(()=>{localStorage.setItem(HAS,'1');localStorage.setItem(REM,keep?'1':'0');if(keep)localStorage.setItem(LAST,u);else localStorage.removeItem(LAST)});
         // if the auth listener has not opened the app shortly after a successful login, do it directly
         setTimeout(()=>{if(auth.currentUser&&!ov.hidden){console.warn('Penny: opening app after login');try{if(!uid)listen(auth.currentUser)}catch(e){console.error(e)}hideAuth()}},3000);
@@ -1264,17 +1293,77 @@ async function start(FIREBASE_CONFIG){
 
   /* ----- logo menu: log out when signed in ----- */
   menuHTML=()=>'<p>Signed in as <b>'+esc(who)+'</b></p>'+(bad?'<p>'+esc(bad)+'</p>':'')+'<button class="out" type="button">Log out</button>';
-  btn.onclick=toggleMenu;
-  menu.onclick=async e=>{
-    if(!e.target.closest('.out'))return;
-    closeMenu();
+  async function doLogout(){
     if(hasPending()&&!confirm('Some changes have not synced yet. If you log out now they will be lost. Log out anyway?'))return;
     try{await A.signOut(auth)}catch(x){console.error('Penny sign-out error',x)}
     toLogin();
-  };
+  }
+  menu.onclick=e=>{if(!e.target.closest('.out'))return;closeMenu();doLogout()};
+
+  /* ----- profile screen (logo / account button) ----- */
+  const prof=document.createElement('div');prof.id='prof';prof.hidden=true;
+  prof.setAttribute('role','dialog');prof.setAttribute('aria-modal','true');prof.setAttribute('aria-labelledby','profT');
+  document.body.appendChild(prof);
+  const nice=()=>{const n=(who||'').split(/[._-]/)[0];return n.charAt(0).toUpperCase()+n.slice(1)};
+  const shown=()=>window.pennyShow||nice();
+  function openProf(e){
+    if(e&&e.stopPropagation)e.stopPropagation();
+    if(!auth.currentUser)return;
+    closeMenu();
+    const u=auth.currentUser,since=u.metadata&&u.metadata.creationTime?new Date(u.metadata.creationTime):null;
+    const when=since&&!isNaN(since)?since.toLocaleDateString('en-PH',{month:'long',year:'numeric'}):'';
+    prof.innerHTML=`<div class="p-bar"><button class="p-back" id="pBack" type="button" aria-label="Back"><svg class="ic" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg></button><h2 id="profT">Profile</h2></div>
+    <div class="p-body"><div class="p-in">
+      <div class="p-hero"><div class="p-av" id="pAv"></div><h3 id="pTitle"></h3><p>@${esc(who)}</p></div>
+      <div class="card">
+        <form id="pForm" novalidate>
+          <label for="pName" style="margin-top:0">Name</label>
+          <input id="pName" name="name" type="text" autocomplete="name" autocapitalize="words" spellcheck="false" maxlength="30" placeholder="Enter your name">
+          <div class="p-msg" id="pMsg" role="status"></div>
+          <button class="save" id="pSave" type="submit" disabled>Save name</button>
+        </form>
+      </div>
+      <div class="card" style="padding-top:6px;padding-bottom:6px">
+        <div class="p-row"><span>Username</span><b>${esc(who)}</b></div>
+        ${when?`<div class="p-row"><span>Member since</span><b>${esc(when)}</b></div>`:''}
+      </div>
+    </div></div>
+    <div class="p-foot"><div><button class="save del" id="pOut" type="button">Log out</button></div></div>`;
+    const $p=id=>prof.querySelector(id),inp=$p('#pName'),sv=$p('#pSave'),msg=$p('#pMsg');
+    const paint=()=>{const n=shown();$p('#pAv').textContent=(n.charAt(0)||'?').toUpperCase();$p('#pTitle').textContent=n};
+    const clean=()=>inp.value.trim().replace(/\s+/g,' ');
+    const say=(t,bad)=>{msg.textContent=t||'';msg.classList.toggle('bad',!!bad)};
+    inp.value=shown();paint();
+    inp.oninput=()=>{say('');sv.disabled=clean()===shown()};
+    $p('#pBack').onclick=closeProf;
+    $p('#pOut').onclick=()=>doLogout();
+    $p('#pForm').onsubmit=async ev=>{
+      ev.preventDefault();const n=clean();
+      if(!NAME_RE.test(n))return say('Enter your name (letters and spaces, up to 30 characters).',true);
+      sv.disabled=true;sv.textContent='Saving…';say('');
+      try{
+        await Promise.race([A.updateProfile(auth.currentUser,{displayName:n}),new Promise((_,rej)=>setTimeout(()=>rej(new Error('timeout')),8000))]);
+        window.pennyShow=n;window.pennyGreet();inp.value=n;paint();say('Name saved.');sv.textContent='Save name';sv.disabled=true;
+      }catch(x){console.error('Penny could not save name',x);say('Could not save your name. Check your internet and try again.',true);sv.textContent='Save name';sv.disabled=false}
+    };
+    prof.hidden=false;lockApp(true);
+    setTimeout(()=>{const b=$p('#pBack');if(b)b.focus({preventScroll:true})},30);
+  }
+  function closeProf(){
+    if(prof.hidden)return;
+    prof.hidden=true;prof.innerHTML='';
+    if(ov.hidden)lockApp(false);
+    try{logo.focus({preventScroll:true})}catch(x){}
+  }
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&!prof.hidden)closeProf()});
+  btn.onclick=openProf;
+  logo.onclick=openProf;
+  logo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProf(e)}};
+
   /* Wipe this device's view and go straight to the login screen */
   function toLogin(){
-    was=false;who='';btn.hidden=true;window.pennyName='';
+    prof.hidden=true;prof.innerHTML='';
+    was=false;who='';btn.hidden=true;window.pennyName='';window.pennyShow='';
     try{window.pennyGreet()}catch(x){}
     ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
     allowOffline=false;
@@ -1292,12 +1381,12 @@ async function start(FIREBASE_CONFIG){
   A.onAuthStateChanged(auth,u=>{
     authReady=true;stop();closeMenu();
     if(u){
-      was=true;allowOffline=false;who=(u.email||'').split('@')[0];window.pennyName=who;window.pennyGreet();
+      was=true;allowOffline=false;who=(u.email||'').split('@')[0];window.pennyName=who;window.pennyShow=u.displayName||'';window.pennyGreet();
       ls(()=>{sessionStorage.setItem(SIGNED,'1');if(localStorage.getItem(REM)!=='0')localStorage.setItem(SIGNED,'1');else localStorage.removeItem(SIGNED)});
       listen(u);hideAuth();
     }else{
       if(was){toLogin();return} // logged out (maybe in another tab): wipe this view and show login
-      who='';btn.hidden=true;window.pennyName='';window.pennyGreet();ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
+      who='';btn.hidden=true;window.pennyName='';window.pennyShow='';window.pennyGreet();ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
       showAuth();draw('login');
     }
   });
