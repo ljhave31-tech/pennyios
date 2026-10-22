@@ -1214,6 +1214,12 @@ async function start(FIREBASE_CONFIG){
         setTimeout(()=>{if(auth.currentUser&&!ov.hidden){console.warn('Penny: opening app after login');try{if(!uid)listen(auth.currentUser)}catch(e){console.error(e)}hideAuth()}},3000);
       }catch(x){
         console.error('Penny login error',x);
+        if(create&&x&&x.code==='auth/email-already-in-use'){ // the account exists: send them to Log in instead of a dead end
+          draw('login');const i=card.querySelector('#au'),e2=card.querySelector('#aErr');
+          if(i)i.value=u;
+          if(e2){e2.textContent='That username already has an account. Enter its password and tap Log in to use it on this device.';e2.hidden=false}
+          const pw2=card.querySelector('#ap');if(pw2)pw2.focus({preventScroll:true});
+          return}
         say(x&&x.code==='penny/timeout'?'Login is taking too long ('+x.step+'). Check your internet, turn off ad blockers or shields for this site, then try again.':msgFor(x,create));
         go.disabled=false;go.textContent=create?'Create account':'Log in'}
     };
@@ -1236,7 +1242,7 @@ async function start(FIREBASE_CONFIG){
     try{window.pennyGreet()}catch(x){}
     ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
     allowOffline=false;
-    showAuth();draw(ls(()=>localStorage.getItem(HAS))?'login':'create'); // login first, so nothing below can block it
+    showAuth();draw('login'); // login first, so nothing below can block it
     try{
       S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));
       if(typeof close_==='function')close_();
@@ -1256,14 +1262,14 @@ async function start(FIREBASE_CONFIG){
     }else{
       if(was){toLogin();return} // logged out (maybe in another tab): wipe this view and show login
       who='';btn.hidden=true;window.pennyName='';window.pennyGreet();ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
-      showAuth();draw(ls(()=>localStorage.getItem(HAS))?'login':'create');
+      showAuth();draw('login');
     }
   });
 
   /* Guard: anyone who is not logged in always lands on the login screen */
   const enforce=()=>{
     if(!authReady||uid||allowOffline||auth.currentUser)return;
-    showAuth();if(card.hidden)draw(ls(()=>localStorage.getItem(HAS))?'login':'create');
+    showAuth();if(card.hidden)draw('login');
   };
   new MutationObserver(()=>{if(ov.hidden)enforce()}).observe(ov,{attributes:true,attributeFilter:['hidden']});
   addEventListener('pageshow',enforce);
