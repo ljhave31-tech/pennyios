@@ -1070,7 +1070,7 @@ const SIGNED=KEY+':signed';
 const tl=f=>{try{return f()}catch(e){return null}};
 const gated=[...document.querySelectorAll('.app,#add,#hfab')];
 const lockApp=on=>gated.forEach(el=>on?el.setAttribute('inert',''):el.removeAttribute('inert')); // no keyboard access behind the login screen
-let locked=false,allowOffline=false,authReady=false;
+let locked=false,allowOffline=false,authReady=false,localOnly=false; // localOnly: firebase-config.js loaded but is intentionally empty
 const showAuth=()=>{ov.hidden=false;lockApp(true)};
 const hideAuth=()=>{lockApp(false);if(ov.hidden)return;ov.hidden=true;if(window.pennyTourPending){window.pennyTourPending=0;maybeTour()}};
 function blocked(){ // Firebase could not load and the user has not logged in before
@@ -1081,12 +1081,12 @@ function blocked(){ // Firebase could not load and the user has not logged in be
 function offlineFallback(){ // offline: only let in someone who was already logged in on this device
   if(tl(()=>localStorage.getItem(SIGNED)||sessionStorage.getItem(SIGNED))){allowOffline=true;hideAuth()}else blocked();
 }
-setTimeout(()=>{if(!authReady)locked?offlineFallback():hideAuth()},12000);
+setTimeout(()=>{if(!authReady&&!localOnly)offlineFallback()},12000); // fail closed: never open the app without a login
 import('./firebase-config.js').then(m=>{
-  if(!(m.FIREBASE_CONFIG&&m.FIREBASE_CONFIG.apiKey)){hideAuth();return}
+  if(!(m.FIREBASE_CONFIG&&m.FIREBASE_CONFIG.apiKey)){localOnly=true;hideAuth();return}
   locked=true;
   return start(m.FIREBASE_CONFIG).catch(e=>{console.warn('Penny sync could not start',e);if(!authReady)offlineFallback()});
-}).catch(e=>{console.warn('Penny sync is off (no firebase-config.js)',e);hideAuth()});
+}).catch(e=>{console.warn('Penny could not load firebase-config.js',e);offlineFallback()}); // fail closed: login screen, or offline access only if this device was already signed in
 
 async function start(FIREBASE_CONFIG){
   const B='https://www.gstatic.com/firebasejs/10.14.1/';
