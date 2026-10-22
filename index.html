@@ -896,7 +896,8 @@ const TOPICS=[
   {q:'What do the daily tips and greeting do?',s:['greeting']}
 ];
 function maybeTour(){
-  try{if(localStorage.getItem(TOUR_KEY))return}catch(e){}
+  if(window.pennyAuthMode){if(!window.pennyTourDue)return} // accounts: only on that account's first login
+  else{try{if(localStorage.getItem(TOUR_KEY))return}catch(e){}}
   const ao=$('auth');if(ao&&!ao.hidden){window.pennyTourPending=1;return}
   if($('bg').classList.contains('on'))return;
   startTour();
@@ -940,7 +941,7 @@ async function startTour(ids){
   };
   enterDemo();hv='month';slide=0;mode='view';dir=-1;render();await wait(RM?0:700);
   if(tour){leaveDemo();return}
-  if(!topic){try{localStorage.setItem(TOUR_KEY,'1')}catch(e){}}
+  if(!topic){try{localStorage.setItem(TOUR_KEY,'1');if(window.pennyTourKey)localStorage.setItem(window.pennyTourKey,'1')}catch(e){}window.pennyTourDue=0}
   const root=$('root'),de=document.documentElement,q=s=>document.querySelector(s),kid=i=>root.children[i];
   const links=()=>root.querySelectorAll('.sec .link');
   const sheetOn=()=>$('bg').classList.contains('on')&&!$('bg').classList.contains('closing');
@@ -1149,10 +1150,15 @@ render();
 #a2hs button{flex:1;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:800;font-size:15px;cursor:pointer}
 #a2hs .go{background:var(--sage);color:#fff}
 #a2hs .later{background:transparent;color:var(--mute)}
+#a2hs .card{position:relative}
+#a2hs .x{position:absolute;top:10px;right:10px;flex:none;width:32px;height:32px;padding:0;border-radius:50%;background:transparent;color:var(--mute);font-size:20px;line-height:1;display:grid;place-items:center}
+#a2hs .x:hover{background:var(--sage-soft)}
+#a2hs .top{padding-right:26px}
 </style>
 <div id="a2hs" role="dialog" aria-modal="true" aria-labelledby="a2hsT">
   <div class="card">
-    <div class="top"><img src="icon-192.png" alt=""><div><h3 id="a2hsT">Add Penny to your home screen</h3><p>Open it like a real app, even offline.</p></div></div>
+    <button class="x" id="a2hsX" type="button" aria-label="Close">&times;</button>
+    <div class="top"><img src="icon-192.png" alt=""><div><h3 id="a2hsT">Enjoying the app?</h3><p id="a2hsP">Add Penny to your home screen to open it like a real app, even offline.</p></div></div>
     <ol id="a2hsSteps" hidden>
       <li><b>1</b><span>Tap the Share button <svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></span></li>
       <li><b>2</b><span>Choose <u>Add to Home Screen</u></span></li>
@@ -1165,35 +1171,61 @@ render();
 </div>
 <script>
 (function(){
-  var KEY='penny-a2hs',WAIT=7*864e5,dp=null,shown=false,ready=false;
+  /* Install prompt: shown once, 30 seconds after the user is logged in and inside the app,
+     only if Penny is not already installed. Dismissed = hidden for 7 days. */
+  var KEY='penny-a2hs',WAIT=7*864e5,DELAY=30000,dp=null,shown=false,t0=0;
   function ls(f){try{return f()}catch(e){return null}}
-  var standalone=(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+  var standalone=(window.matchMedia&&(matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: window-controls-overlay)').matches||matchMedia('(display-mode: minimal-ui)').matches))||navigator.standalone===true;
   window.pennyInstallAvailable=function(){return false};
   if(standalone){ls(function(){localStorage.setItem('penny-installed','1')});return}
-  var recent=Date.now()-(+ls(function(){return localStorage.getItem(KEY)})||0)<WAIT;
   var ua=navigator.userAgent||'';
   var ios=/iPhone|iPad|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   var safari=ios&&!/CriOS|FxiOS|EdgiOS|OPiOS|GSA|FBAN|FBAV|Instagram/.test(ua);
-  var box=document.getElementById('a2hs'),go=document.getElementById('a2hsGo');
+  var android=/Android/i.test(ua);
+  /* iOS -> "Add to Home Screen", Android / other touch -> "Install on device", desktop -> "Add to Desktop" */
+  var target=ios?'home screen':(android||(matchMedia&&matchMedia('(pointer:coarse)').matches))?'device':'desktop';
+  var btnText=target==='desktop'?'Add to Desktop':target==='device'?'Install on device':'Add to Home Screen';
+  var box=document.getElementById('a2hs'),go=document.getElementById('a2hsGo'),sub=document.getElementById('a2hsP');
   var L={steps:document.getElementById('a2hsSteps'),safari:document.getElementById('a2hsSafari'),menu:document.getElementById('a2hsMenu')};
-  function hide(remember){box.classList.remove('in');setTimeout(function(){box.classList.remove('show')},250);if(remember)ls(function(){localStorage.setItem(KEY,String(Date.now()))})}
+  sub.textContent='Add Penny to your '+target+' to open it like a real app, even offline.';
+  function remember(){ls(function(){localStorage.setItem(KEY,String(Date.now()))})}
+  function installed(){return !!ls(function(){return localStorage.getItem('penny-installed')})}
+  function recent(){return Date.now()-(+ls(function(){return localStorage.getItem(KEY)})||0)<WAIT}
+  function hide(rem){box.classList.remove('in');setTimeout(function(){box.classList.remove('show')},250);if(rem)remember()}
   function present(){
     L.steps.hidden=L.safari.hidden=L.menu.hidden=true;
-    if(ios){L[safari?'steps':'safari'].hidden=false;go.textContent='Got it';go.onclick=function(){hide(true)}}
-    else if(dp){go.textContent='Install';go.onclick=function(){hide(false);var e=dp;dp=null;e.prompt()}}
+    if(ios){ /* iOS can't install from code: the button reveals the steps, then closes */
+      go.textContent=btnText;
+      go.onclick=function(){L[safari?'steps':'safari'].hidden=false;go.textContent='Got it';go.onclick=function(){hide(true)}}}
+    else if(dp){go.textContent=btnText;go.onclick=function(){
+      hide(false);var e=dp;dp=null;e.prompt();
+      if(e.userChoice)e.userChoice.then(function(c){if(!c||c.outcome!=='accepted')remember()}).catch(function(){})}}
     else{L.menu.hidden=false;go.textContent='Got it';go.onclick=function(){hide(true)}}
     box.classList.add('show');requestAnimationFrame(function(){requestAnimationFrame(function(){box.classList.add('in')})});
   }
-  function show(){if(shown||recent||(!ios&&!dp))return;shown=true;present()}
-  window.pennyInstallAvailable=function(){return !ls(function(){return localStorage.getItem('penny-installed')})};
-  window.pennyInstall=function(){shown=true;present()};
+  /* is the user logged in and looking at the app? (login overlay gone, no tour running) */
+  function inSession(){var a=document.getElementById('auth');return !!a&&a.hidden}
+  function busy(){return !!document.querySelector('.tour-shield,.tour-card,#prof:not([hidden])')||(window.pennyAuthMode&&!!window.pennyTourDue)}
+  function due(){return t0&&Date.now()-t0>=DELAY&&!busy()}
+  function tryShow(){
+    if(shown||recent()||installed())return;
+    if(!ios&&!dp)return;            /* browser says it can't install (or already installed) */
+    if(!due())return;
+    shown=true;present();
+  }
+  window.pennyInstallAvailable=function(){return !installed()};
+  window.pennyInstall=function(){shown=true;present()};   /* manual trigger (menu button) still works */
   document.getElementById('a2hsLater').onclick=function(){hide(true)};
+  document.getElementById('a2hsX').onclick=function(){hide(true)};
   box.addEventListener('click',function(e){if(e.target===box)hide(true)});
-  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(ready&&!document.querySelector('.tour-shield,.tour-card'))show()});
-  window.addEventListener('appinstalled',function(){hide(true);ls(function(){localStorage.setItem('penny-installed','1')});window.pennyInstallAvailable=function(){return false}});
-  function go2(){ready=true;var t0=Date.now();(function w(){var busy=document.querySelector('.tour-shield,.tour-card')||(typeof TOUR_KEY!=='undefined'&&!ls(function(){return localStorage.getItem(TOUR_KEY)}));if(busy&&Date.now()-t0<30000){setTimeout(w,1000)}else{setTimeout(show,700)}})()}
-  if(!document.getElementById('splash'))go2();
-  else{window.addEventListener('splash:done',go2,{once:true});setTimeout(function(){if(!ready)go2()},9000)}
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&box.classList.contains('show'))hide(true)});
+  window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;tryShow()});
+  window.addEventListener('appinstalled',function(){shown=true;hide(false);ls(function(){localStorage.setItem('penny-installed','1')});window.pennyInstallAvailable=function(){return false}});
+  /* session clock: starts when login finishes, resets if the user logs out */
+  var iv=setInterval(function(){
+    if(shown||installed()){if(shown||installed())clearInterval(iv);return}
+    if(inSession()){if(!t0)t0=Date.now();tryShow()}else t0=0;
+  },1000);
 })();
 </script>
 <script type="module">
@@ -1231,7 +1263,7 @@ function offlineFallback(){ // offline: only let in someone who was already logg
 setTimeout(()=>{if(!authReady&&!localOnly)offlineFallback()},12000); // fail closed: never open the app without a login
 import('./firebase-config.js').then(m=>{
   if(!(m.FIREBASE_CONFIG&&m.FIREBASE_CONFIG.apiKey)){localOnly=true;hideAuth();return}
-  locked=true;
+  locked=true;window.pennyAuthMode=true;
   return start(m.FIREBASE_CONFIG).catch(e=>{console.warn('Penny sync could not start',e);if(!authReady)offlineFallback()});
 }).catch(e=>{console.warn('Penny could not load firebase-config.js',e);offlineFallback()}); // fail closed: login screen, or offline access only if this device was already signed in
 
@@ -1455,7 +1487,7 @@ async function start(FIREBASE_CONFIG){
 
   /* Wipe this device's view and go straight to the login screen */
   function toLogin(){
-    prof.hidden=true;prof.innerHTML='';window.pennyAccount=false;
+    prof.hidden=true;prof.innerHTML='';window.pennyAccount=false;window.pennyTourDue=0;
     was=false;who='';btn.hidden=true;window.pennyName='';window.pennyShow='';
     try{window.pennyGreet()}catch(x){}
     ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
@@ -1478,10 +1510,16 @@ async function start(FIREBASE_CONFIG){
     if(u){
       was=true;allowOffline=false;who=(u.email||'').split('@')[0];window.pennyName=who;window.pennyAccount=true;window.pennyShow=u.displayName||'';window.pennyGreet();
       ls(()=>{sessionStorage.setItem(SIGNED,'1');if(localStorage.getItem(REM)!=='0')localStorage.setItem(SIGNED,'1');else localStorage.removeItem(SIGNED)});
+      { // first login of a brand-new account (never shown again for this account on this device)
+        const mt=u.metadata||{},c=Date.parse(mt.creationTime),l=Date.parse(mt.lastSignInTime);
+        window.pennyTourKey=TOUR_KEY+':'+u.uid;
+        window.pennyTourDue=!ls(()=>localStorage.getItem(window.pennyTourKey))&&isFinite(c)&&isFinite(l)&&Math.abs(l-c)<120000?1:0;
+      }
       listen(u);hideAuth();
+      if(window.pennyTourDue)setTimeout(maybeTour,1200);
     }else{
       if(was){toLogin();return} // logged out (maybe in another tab): wipe this view and show login
-      who='';btn.hidden=true;window.pennyName='';window.pennyShow='';window.pennyGreet();ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
+      who='';btn.hidden=true;window.pennyName='';window.pennyShow='';window.pennyTourDue=0;window.pennyGreet();ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
       showAuth();draw('login');
     }
   });
