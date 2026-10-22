@@ -352,6 +352,12 @@ h1{font-size:26px}h1 small{font-size:14px}
 html #a2hs{align-items:center}
 }
 </style>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js">
+<link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -1087,7 +1093,7 @@ async function start(FIREBASE_CONFIG){
   const [{initializeApp},A,F]=await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-auth.js'),import(B+'firebase-firestore.js')]);
   const app=initializeApp(FIREBASE_CONFIG),auth=A.getAuth(app);
   let db;
-  try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}
+  try{db=F.initializeFirestore(app,{experimentalAutoDetectLongPolling:true,localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}
   catch(e){db=F.getFirestore(app)}
 
   let uid=null,who='',unsubs=[],remote=new Map(),rb=null,firstTx=true,firstB=true;
