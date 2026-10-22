@@ -293,6 +293,7 @@ html.tour-lock,html.tour-lock body,html.sheet-lock,html.sheet-lock body{overflow
 .tour-card{position:fixed;z-index:92;box-sizing:border-box;background:var(--card);color:var(--ink);border-radius:22px;padding:20px;box-shadow:0 18px 50px rgba(0,0,0,.3);transition:opacity .2s ease}
 .tour-card.hide{opacity:0;pointer-events:none}
 .tour-in{position:relative;animation:tourIn .45s var(--ease) backwards}
+.tour-pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.02em;color:var(--sage);background:var(--sage-soft);border-radius:99px;padding:3px 10px;margin-bottom:8px}
 .tour-card h3{margin:0 0 6px;font-size:18px;font-weight:800}
 .tour-in.has-skip h3{padding-right:76px}
 .tour-card p{margin:0;font-size:14px;line-height:1.5;color:var(--ink);opacity:.82}
@@ -525,6 +526,7 @@ try{
   setTimeout(()=>alert('Penny could not read your saved data. Browser storage may be unavailable or the saved data may be invalid.'),0);
 }
 const save=()=>{
+  if(window.pennyReal)return; // tour sample data is never saved or synced
   try{localStorage.setItem(KEY,JSON.stringify(S))}
   catch(e){
     console.error('Penny could not save data',e);
@@ -904,15 +906,39 @@ async function startTour(ids){
   if(tour)return;
   const topic=Array.isArray(ids);
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  if(window.pennyReal)return;
   close_();
-  if(hv!=='month'||slide!==0){hv='month';slide=0;mode='view';dir=-1;render();await wait(RM?0:700)}
-  if(tour)return;
+  /* Sample data: shown only during the tour, never saved or synced, removed when it ends */
+  const keep={S,month,hv,slide,dayFilter,filt};
+  const enterDemo=()=>{
+    const pad=n=>String(n).padStart(2,'0'),mo=todayPH().slice(0,7),dT=+todayPH().slice(8,10),sc=Math.min(1,dT/20);
+    const dk=k=>mo+'-'+pad(Math.max(1,Math.min(dT,Math.round(k*sc)))),tx=[];let id=9e12;
+    const add=(type,cat,amt,note,k)=>tx.push({id:id++,type,cat,amt,note,date:dk(k)});
+    add('inc','salary',10000,'Monthly pay',1);add('inc','side',2000,'Freelance project',5);
+    add('exp','home',5000,'Rent',2);
+    [['Groceries',350,3],['Lunch',180,5],['Groceries',420,8],['Dinner out',250,12],['Groceries',350,16]].forEach(r=>add('exp','food',r[1],r[0],r[2]));
+    add('exp','transport',350,'Jeepney + MRT',4);add('exp','transport',350,'Grab ride',13);
+    add('exp','fun',450,'Movie night',10);
+    add('exp','health',300,'Vitamins',7);
+    add('exp','bills',500,'Mobile load',6);
+    window.pennyReal=S;window.pennyDemo=1;
+    S={tx,budgets:{food:1800,transport:1000,fun:800}};
+    month=mo;filt={type:'all',cat:null};dayFilter=null;
+  };
+  const leaveDemo=()=>{
+    if(!window.pennyReal)return;
+    S=window.pennyReal;window.pennyReal=null;window.pennyDemo=0;
+    month=keep.month;hv=keep.hv;slide=keep.slide;dayFilter=keep.dayFilter;filt=keep.filt;
+    mode='data';render();
+  };
+  enterDemo();hv='month';slide=0;mode='view';dir=-1;render();await wait(RM?0:700);
+  if(tour){leaveDemo();return}
   if(!topic){try{localStorage.setItem(TOUR_KEY,'1')}catch(e){}}
   const root=$('root'),de=document.documentElement,q=s=>document.querySelector(s),kid=i=>root.children[i];
   const links=()=>root.querySelectorAll('.sec .link');
   const logo=(q('.logo')||{innerHTML:''}).innerHTML;
   const cat={
-    welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a quick tour to see every feature and how it works.',next:'Start tour',back:'Skip',backA:'skip'},
+    welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a quick tour to see every feature in action. Penny fills in sample data just for the tour, and it\u2019s removed when you finish. Your own entries are never touched.',next:'Start tour',back:'Skip',backA:'skip'},
     greeting:{title:'Your daily greeting',text:'Penny greets you by name and shows a fresh budgeting tip every day. Small reminders help build good money habits.',els:()=>[q('.brand h1')],r:22,if:()=>!!q('.brand h1')},
     profile:{title:'Your profile',text:'Tap the Penny logo to open your profile. You can change your name there, see your username, and log out. Log out stays pinned at the bottom of the screen.',els:()=>[q('.brand .logo')],r:16,if:()=>!!window.pennyAccount},
     month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today. Tap the calendar icon to pick any month and year; a dot marks months that already have entries, and Go to this month brings you back.',els:()=>[q('.month')],r:99},
@@ -924,7 +950,7 @@ async function startTour(ids){
     activity:{slide:1,title:'Recent activity',text:'Use the < and > buttons to flip between Categories, Activity and Spending per day. Activity shows your latest entries. Tap See all to open the full list.',els:()=>[kid(1),kid(2)],maxH:300},
     daily:{slide:2,title:'Spending per day',text:'A calendar of your spending. Green days are light, yellow are moderate, and red days used a big share of your budget. Tap any day to see its entries, then tap the day label to clear it.',els:()=>[kid(1),kid(2)],maxH:420},
     help:{title:'Need a reminder?',text:'Tap this button any time, pick a question, and Penny will show you the answer. You can also replay this full tour or add Penny to your home screen from there.',els:()=>[q('#hfab')],r:99},
-    final:{w:1,last:1,title:'You\u2019re all set',text:'Start by adding your first budget or expense. Your data syncs to your account, so it\u2019s there on any device you log in on.',next:'Add my first entry',back:'Done',backA:'done'},
+    final:{w:1,last:1,title:'You\u2019re all set',text:'The sample data will disappear when you finish. Start by adding your first budget or expense. Your data syncs to your account, so it\u2019s there on any device you log in on.',next:'Add my first entry',back:'Done',backA:'done'},
     stats:{title:'Budget, Spent and Left',text:'Budget is money coming in. Spent is money going out. Left is what remains this month: budget minus spent. Tap Budget to add a budget entry, or Spent to see your expenses.',els:()=>[q('#root .stats')],r:18},
     ring:{title:'What the ring shows',text:'The ring starts as your full budget (100%). Each expense takes a slice in its category\u2019s color, and the green that\u2019s left is what you can still spend. It turns red when you go over.',els:()=>[q('#root .ring')],r:99},
     budgets:{title:'Set a spending limit',text:'Tap Set budgets, then enter a monthly limit for each category. Each category bar shows how close you are, and turns red if you go over.',els:()=>[links()[0]],r:99},
@@ -938,7 +964,7 @@ async function startTour(ids){
   shield.className='tour-shield';hole.className='tour-hole nohole';card.className='tour-card hide';
   card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
   card.setAttribute('aria-labelledby','tourT');card.setAttribute('aria-describedby','tourD');
-  const T=tour={i:-1,token:0};
+  const T=tour={i:-1,token:0};T.end=()=>end();
   document.body.append(shield,hole,card);de.classList.add('tour-lock');
   const PAD=8;
   const setHole=(l,t,w,h,r)=>{const st=hole.style;st.left=l+'px';st.top=t+'px';st.width=w+'px';st.height=h+'px';if(r!=null)st.borderRadius=r+'px'};
@@ -984,6 +1010,7 @@ async function startTour(ids){
     card.innerHTML='<div class="tour-in'+(s.w?'':' has-skip')+'">'
       +(n===0&&s.w?'<div class="tour-mark">'+logo+'</div>':'')
       +(s.w?'':'<button class="tour-skip" data-a="skip">'+(topic?'Close':'Skip tour')+'</button>')
+      +(s.w?'':'<span class="tour-pill">Sample data</span>')
       +'<h3 id="tourT">'+s.title+'</h3><p id="tourD">'+s.text+'</p>'
       +'<div class="tour-foot">'+(showDots?'<div class="tour-dots" aria-hidden="true">'+dots+'</div>':'')
       +'<div class="tour-btns">'+btns+'</div></div></div>';
@@ -1010,7 +1037,7 @@ async function startTour(ids){
     removeEventListener('keydown',onKey);removeEventListener('resize',onResize);
     card.classList.add('hide');hole.classList.remove('on');de.classList.remove('tour-lock');
     setTimeout(()=>{shield.remove();hole.remove();card.remove()},420);
-    if(slide!==0&&!av){dayFilter=null;slide=0;mode='data';render()}
+    leaveDemo();
     if(av&&T.openedAct)closeAct();
     else if(!topic)scrollTo({top:0,behavior:RM?'auto':'smooth'});
     if(openAdd)setTimeout(addSheet,260);
@@ -1163,7 +1190,8 @@ async function start(FIREBASE_CONFIG){
 
   let uid=null,who='',unsubs=[],remote=new Map(),rb=null,firstTx=true,firstB=true;
   const ls=f=>{try{return f()}catch(e){return null}};
-  const cache=()=>ls(()=>localStorage.setItem(KEY,JSON.stringify(S)));
+  const R=()=>window.pennyReal||S; // the real data, even while the tour shows sample data
+  const cache=()=>ls(()=>localStorage.setItem(KEY,JSON.stringify(R())));
   const paint=()=>afterSplash(render);
   const show=(cls,txt,title)=>{btn.hidden=false;btn.className='acct '+cls;btn.innerHTML='<i class="dot"></i><span></span>';btn.lastChild.textContent=txt;btn.title=(title||'')+(who?(title?' · ':'')+'Signed in as '+who+'':'')};
   const fail=e=>{console.error('Penny sync error',e);show('err','Sync error',e&&e.message||'')};
@@ -1188,14 +1216,14 @@ async function start(FIREBASE_CONFIG){
   window.pennySync=()=>{
     if(!uid)return;
     try{
-      const cur=new Map(S.tx.map(t=>[String(t.id),t])),b=F.writeBatch(db);let n=0;
+      const cur=new Map(R().tx.map(t=>[String(t.id),t])),b=F.writeBatch(db);let n=0;
       cur.forEach((t,id)=>{const r=remote.get(id);
         if(!r||r.type!==t.type||r.cat!==t.cat||r.amt!==t.amt||(r.note||'')!==(t.note||'')||r.date!==t.date){
           b.set(F.doc(txCol(),id),{id:t.id,type:t.type,cat:t.cat,amt:t.amt,note:t.note||'',date:t.date});n++}});
       remote.forEach((_,id)=>{if(!cur.has(id)){b.delete(F.doc(txCol(),id));n++}});
       if(n)track(b.commit());
-      const bj=JSON.stringify(cleanB(S.budgets));
-      if(bj!==rb){rb=bj;track(F.setDoc(bDoc(),cleanB(S.budgets)))}
+      const bj=JSON.stringify(cleanB(R().budgets));
+      if(bj!==rb){rb=bj;track(F.setDoc(bDoc(),cleanB(R().budgets)))}
     }catch(e){fail(e)}
   };
 
@@ -1211,18 +1239,18 @@ async function start(FIREBASE_CONFIG){
         // first sign-in on this device, or changes were made while sync could not run: keep the local entries too
         if(!ls(()=>localStorage.getItem(mergeKey))||dirtyAtStart){
           const m=new Map(list.map(t=>[String(t.id),t]));
-          S.tx.forEach(t=>{if(dirtyAtStart||!m.has(String(t.id)))m.set(String(t.id),t)});
+          R().tx.forEach(t=>{if(dirtyAtStart||!m.has(String(t.id)))m.set(String(t.id),t)});
           list=[...m.values()];
           ls(()=>{localStorage.setItem(mergeKey,'1');localStorage.removeItem(KEY+':dirty')});merged=true}}
-      S.tx=list;cache();status(snap.metadata);
+      R().tx=list;cache();status(snap.metadata);
       if(merged)window.pennySync();
       if(merged||first||(snap.docChanges().length&&!snap.metadata.hasPendingWrites))paint();
     },fail));
     unsubs.push(F.onSnapshot(bDoc(),snap=>{
       if(snap.exists()){
-        if(firstB&&dirtyAtStart&&Object.keys(S.budgets).length){rb=JSON.stringify(cleanB(snap.data()));window.pennySync()} // offline edits win
-        else{S.budgets=cleanB(snap.data());rb=JSON.stringify(S.budgets)}}
-      else{rb=JSON.stringify({});if(firstB&&Object.keys(S.budgets).length)window.pennySync();else S.budgets={}}
+        if(firstB&&dirtyAtStart&&Object.keys(R().budgets).length){rb=JSON.stringify(cleanB(snap.data()));window.pennySync()} // offline edits win
+        else{R().budgets=cleanB(snap.data());rb=JSON.stringify(R().budgets)}}
+      else{rb=JSON.stringify({});if(firstB&&Object.keys(R().budgets).length)window.pennySync();else R().budgets={}}
       firstB=false;cache();
       if(!snap.metadata.hasPendingWrites)paint();
     },fail));
@@ -1379,6 +1407,8 @@ async function start(FIREBASE_CONFIG){
     allowOffline=false;
     showAuth();draw('login'); // login first, so nothing below can block it
     try{
+      if(tour&&tour.end)tour.end();
+      if(window.pennyReal){S=window.pennyReal;window.pennyReal=null;window.pennyDemo=0}
       S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));
       if(typeof close_==='function')close_();
       if(av){av=false;actHist=false;$('act').hidden=true;$('root').hidden=false}
