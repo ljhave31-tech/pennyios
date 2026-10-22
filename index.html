@@ -294,6 +294,13 @@ html.tour-lock,html.tour-lock body,html.sheet-lock,html.sheet-lock body{overflow
 .tour-card.hide{opacity:0;pointer-events:none}
 .tour-in{position:relative;animation:tourIn .45s var(--ease) backwards}
 .tour-pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.02em;color:var(--sage);background:var(--sage-soft);border-radius:99px;padding:3px 10px;margin-bottom:8px}
+.tour-try{margin-top:10px;padding:9px 12px;border-radius:12px;background:var(--sage-soft);color:var(--sage);font-weight:800;font-size:13.5px;line-height:1.4}
+.tour-try.ok{background:var(--sage);color:#fff}
+.tour-hole.pulse::after{animation:tourPulse 1.3s ease-in-out infinite}
+.tour-count{font-size:12.5px;font-weight:800;color:var(--mute)}
+.tour-card.mini{padding:12px 14px}.tour-card.mini h3{font-size:15px;margin-bottom:3px}.tour-card.mini .tour-pill{display:none}
+.tour-card.mini p{font-size:13px;line-height:1.4}.tour-card.mini .tour-foot{margin-top:10px}
+.tour-card.mini .tour-try{margin-top:8px;padding:7px 10px;font-size:13px}.tour-card.mini .tour-btns button{padding:8px 14px;font-size:13px}
 .tour-card h3{margin:0 0 6px;font-size:18px;font-weight:800}
 .tour-in.has-skip h3{padding-right:76px}
 .tour-card p{margin:0;font-size:14px;line-height:1.5;color:var(--ink);opacity:.82}
@@ -871,18 +878,18 @@ $('add').onclick=addSheet;
 /* ===== Guided tour & help ===== */
 const TOUR_KEY=KEY+':tour-v1';
 let tour=null;
-const FULL=['welcome','greeting','profile','month','glance','stats','warnings','savings','categories','budgets','activity','daily','income','add','quickadd','edit','filter','help','final'];
+const FULL=['welcome','greeting','profile','month','monthtoday','glance','stats','warnings','savings','savingsback','categories','filterpill','filter','edit','editsheet','activity','daily','budgets','budgetsheet','income','add','addform','quickadd','help','final'];
 const TOPICS=[
   {q:'How do I see all my entries?',s:['activity']},
-  {q:'How do I add an expense?',s:['add','quickadd']},
+  {q:'How do I add an expense?',s:['add','addform','quickadd']},
   {q:'How do I add budget?',s:['income']},
   {q:'What do Budget, Spent and Left mean?',s:['stats']},
   {q:'What does the ring show?',s:['ring']},
-  {q:'How do I set a spending limit?',s:['budgets']},
-  {q:'How do I edit or delete an entry?',s:['edit']},
+  {q:'How do I set a spending limit?',s:['budgets','budgetsheet']},
+  {q:'How do I edit or delete an entry?',s:['edit','editsheet']},
   {q:'How do I filter my activity?',s:['filter']},
-  {q:'How do I see my total savings?',s:['savings']},
-  {q:'How do I switch months?',s:['month']},
+  {q:'How do I see my total savings?',s:['savings','savingsback']},
+  {q:'How do I switch months?',s:['month','monthtoday']},
   {q:'How do I see my spending per day?',s:['daily']},
   {q:'What do the warnings mean?',s:['warnings']},
   {q:'How do I change my name or log out?',s:['profile']},
@@ -936,28 +943,37 @@ async function startTour(ids){
   if(!topic){try{localStorage.setItem(TOUR_KEY,'1')}catch(e){}}
   const root=$('root'),de=document.documentElement,q=s=>document.querySelector(s),kid=i=>root.children[i];
   const links=()=>root.querySelectorAll('.sec .link');
+  const sheetOn=()=>$('bg').classList.contains('on')&&!$('bg').classList.contains('closing');
+  const foodRow=()=>[...root.querySelectorAll('.cc')].find(e=>/'food'/.test(e.getAttribute('onclick')||''));
+  const nextM=m=>{const a=m.split('-').map(Number),t=new Date(a[0],a[1],1);return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')};
   const logo=(q('.logo')||{innerHTML:''}).innerHTML;
   const cat={
-    welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a quick tour to see every feature in action. Penny fills in sample data just for the tour, and it\u2019s removed when you finish. Your own entries are never touched.',next:'Start tour',back:'Skip',backA:'skip'},
+    welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a quick tour to see every feature in action. Penny fills in sample data just for the tour, and it\u2019s removed when you finish. Tap along to try each action yourself, or tap Skip step any time. Your own entries are never touched.',next:'Start tour',back:'Skip',backA:'skip'},
     greeting:{title:'Your daily greeting',text:'Penny greets you by name and shows a fresh budgeting tip every day. Small reminders help build good money habits.',els:()=>[q('.brand h1')],r:22,if:()=>!!q('.brand h1')},
+    monthtoday:{month:'next',try:{hint:'Try it: tap the month name to jump back to today.',ok:()=>month===todayPH().slice(0,7),done:'Back to today. Tap the month name any time to do this.'},title:'Jump back to today',text:'You are viewing a month with no entries. The month name is a shortcut back to the current month.',els:()=>[q('.month')],r:99},
     profile:{title:'Your profile',text:'Tap the Penny logo to open your profile. You can change your name there, see your username, and log out. Log out stays pinned at the bottom of the screen.',els:()=>[q('.brand .logo')],r:16,if:()=>!!window.pennyAccount},
-    month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today. Tap the calendar icon to pick any month and year; a dot marks months that already have entries, and Go to this month brings you back.',els:()=>[q('.month')],r:99},
+    month:{try:{hint:'Try it: tap the right arrow to go to next month.',init:()=>month,ok:b=>month!==b,done:'Nice! That\u2019s next month, with no entries yet.'},title:'Pick a month',text:'Use the arrows to move between months. The calendar icon opens a picker for any month and year, with a dot on months that have entries.',els:()=>[q('.month')],r:99},
     glance:{title:'Your month at a glance',text:'The ring shows how much of your budget is left, with each expense taking a slice in its category\u2019s color. It turns red when you spend more than your budget.',els:()=>[q('#root .ring')],r:99},
     warnings:{title:'Friendly warnings',text:'This note keeps you on track. It tells you when you pass 80% of your budget, when a category is about to reach its limit, when it\u2019s reached, and when you\u2019ve gone over.',els:()=>[q('#root .note')],r:14},
-    savings:{title:'See your savings',text:'Tap Savings to see everything you\u2019ve saved so far, added up across all months up to the one you\u2019re viewing. Tap This month to come back.',els:()=>[q('.hnav')],r:99},
-    categories:{title:'Spending by category',text:'See where your money goes. Each bar shows how much you\u2019ve spent in a category. Tap a category to see just its entries.',els:()=>[kid(1),kid(2)],maxH:300},
-    add:{title:'Add an entry',text:'Tap Add whenever you spend or receive money. Choose Expense or Budget, enter the amount (or tap +\u20b1100, +\u20b1500 and so on to build it up fast), pick a category, add an optional note, and set the date if it wasn\u2019t today. Then save.',els:()=>[q('#add')],r:99},
+    savings:{try:{hint:'Try it: tap Savings.',ok:()=>hv==='total',done:'This adds up everything you have saved, month after month.'},title:'See your savings',text:'Savings shows your total budget minus your total spending, across all months up to the one you are viewing.',els:()=>[q('.hnav')],r:99},
+    savingsback:{hv:'total',try:{hint:'Try it: tap This month to go back.',ok:()=>hv==='month',done:'Back to the monthly view.'},title:'Back to this month',text:'The same button takes you back whenever you like.',els:()=>[q('.hnav')],r:99},
+    categories:{try:{hint:'Try it: tap the Food row.',ok:()=>av&&filt.cat==='food',done:'These are all your Food entries.'},title:'Spending by category',text:'Each bar shows how much you have spent in a category. Tap a category to see only its entries.',els:()=>[foodRow()||kid(1)],r:14},
+    filterpill:{view:'act',filt:{type:'exp',cat:'food'},try:{hint:'Try it: tap the Food chip to clear the filter.',ok:()=>!filt.cat,done:'Filter cleared. You see every entry again.'},title:'One category at a time',text:'You are looking at Food only. The chip shows the active filter.',els:()=>[q('#act .chip.on')||q('#act .card')],r:99},
+    add:{try:{hint:'Try it: tap Add.',ok:()=>sheetOn(),done:'Every entry starts here.'},title:'Add an entry',text:'Tap Add whenever you spend or receive money.',els:()=>[q('#add')],r:99},
+    addform:{sheet:()=>addSheet(),try:{hint:'Try it: enter an amount, pick a category, then tap Save.',init:()=>S.tx.length,ok:()=>!sheetOn(),done:b=>S.tx.length>b?'Saved! Your entry is in the list.':'Closed. Tap Add any time to try again.'},title:'Fill in the entry',text:'Pick Expense or Budget, then amount (tap +\u20b1100 for quick amounts), category, optional note and date.',els:()=>[$('sheet')],r:26},
     activity:{slide:1,title:'Recent activity',text:'Use the < and > buttons to flip between Categories, Activity and Spending per day. Activity shows your latest entries. Tap See all to open the full list.',els:()=>[kid(1),kid(2)],maxH:300},
-    daily:{slide:2,title:'Spending per day',text:'A calendar of your spending. Green days are light, yellow are moderate, and red days used a big share of your budget. Tap any day to see its entries, then tap the day label to clear it.',els:()=>[kid(1),kid(2)],maxH:420},
+    daily:{slide:2,try:{hint:'Try it: tap any day.',ok:()=>!!dayFilter,done:'These are that day\u2019s entries. Tap the day label to clear it.'},title:'Spending per day',text:'A calendar of your spending. Green days are light, yellow are moderate and red days used a big share of your budget.',els:()=>[kid(1),kid(2)],maxH:420},
     help:{title:'Need a reminder?',text:'Tap this button any time, pick a question, and Penny will show you the answer. You can also replay this full tour or add Penny to your home screen from there.',els:()=>[q('#hfab')],r:99},
     final:{w:1,last:1,title:'You\u2019re all set',text:'The sample data will disappear when you finish. Start by adding your first budget or expense. Your data syncs to your account, so it\u2019s there on any device you log in on.',next:'Add my first entry',back:'Done',backA:'done'},
     stats:{title:'Budget, Spent and Left',text:'Budget is money coming in. Spent is money going out. Left is what remains this month: budget minus spent. Tap Budget to add a budget entry, or Spent to see your expenses.',els:()=>[q('#root .stats')],r:18},
     ring:{title:'What the ring shows',text:'The ring starts as your full budget (100%). Each expense takes a slice in its category\u2019s color, and the green that\u2019s left is what you can still spend. It turns red when you go over.',els:()=>[q('#root .ring')],r:99},
-    budgets:{title:'Set a spending limit',text:'Tap Set budgets, then enter a monthly limit for each category. Each category bar shows how close you are, and turns red if you go over.',els:()=>[links()[0]],r:99},
+    budgets:{try:{hint:'Try it: tap Set budgets.',ok:()=>sheetOn(),done:'Here you set a limit for each category.'},title:'Set a spending limit',text:'Give each category a monthly limit. Its bar then shows how close you are, and turns red if you go over.',els:()=>[links()[0]],r:99},
+    budgetsheet:{sheet:()=>budgetSheet(),try:{hint:'Try it: type a limit for a category, then tap Save budgets.',ok:()=>!sheetOn(),done:'Nice! Each bar now shows spent / limit.'},title:'Set your limits',text:'Leave a category blank to skip it.',els:()=>[$('sheet')],r:26},
     income:{title:'Add budget',text:'This is money coming in, like Salary or Gift. Tap Add budget, or the + next to a type. Tap a type to see its entries. It all goes into this month\u2019s Budget total.',els:()=>[kid(3),kid(4)],maxH:300},
-    quickadd:{title:'Quick add',text:'You can also tap the + next to any category to add an entry to it directly, with the category already chosen.',els:()=>[q('#root .add')],r:99},
-    edit:{view:'act',title:'Edit or delete',text:'Tap an entry to change its amount, category, note or date, or to delete it. You can also tap the x on its right to delete it quickly.',els:()=>[q('#act .tx')||q('#act .card')],r:16,maxH:300},
-    filter:{view:'act',title:'Filter your activity',text:'Use All, Spent and Budget to filter the list. To see one category, go back and tap it.',els:()=>[q('#act .tabs')],r:99}
+    quickadd:{try:{hint:'Try it: tap the + next to a category.',ok:()=>sheetOn(),done:'The category is already chosen, so you only add the amount.'},title:'Quick add',text:'The + next to any category adds an entry to it directly.',els:()=>[q('#root .add')],r:99},
+    edit:{view:'act',try:{hint:'Try it: tap any entry.',ok:()=>sheetOn()&&editId!=null,done:'Every entry opens like this.'},title:'Edit an entry',text:'Tap an entry to change its amount, category, note or date.',els:()=>[q('#act .card')],r:16,maxH:300},
+    editsheet:{view:'act',sheet:()=>{const r=q('#act .tx');if(r)r.click()},try:{hint:'Try it: change the amount, then tap Save changes. Or tap Delete entry.',ok:()=>!sheetOn(),done:'Done! You can also tap the x on a row to delete it fast.'},title:'Edit or delete',text:'Change anything you like.',els:()=>[$('sheet')],r:26},
+    filter:{view:'act',try:{hint:'Try it: tap Budget to see only money coming in.',ok:()=>filt.type==='inc',done:'Only budget entries now. Tap All to see everything again.'},title:'Filter your activity',text:'All shows everything, Spent shows expenses and Budget shows money coming in.',els:()=>[q('#act .tabs')],r:99},
   };
   const steps=(ids||FULL).map(id=>cat[id]).filter(x=>x&&(!x.if||x.if()));
   const shield=document.createElement('div'),hole=document.createElement('div'),card=document.createElement('div');
@@ -977,7 +993,9 @@ async function startTour(ids){
     if(s.maxH)b=Math.min(b,t+s.maxH);
     return{t:t-PAD,l:l-PAD,w:r-l+PAD*2,h:b-t+PAD*2};
   };
+  const holeClip=b=>{if(!b)return '';const l=Math.round(b.l),t=Math.round(b.t),r=Math.round(b.l+b.w),m=Math.round(b.t+b.h);return 'polygon(evenodd,0 0,100% 0,100% 100%,0 100%,0 0,'+l+'px '+t+'px,'+l+'px '+m+'px,'+r+'px '+m+'px,'+r+'px '+t+'px,'+l+'px '+t+'px)'};
   const scrollTarget=s=>{
+    if(s.sheet)return scrollY;
     const els=(s.els?s.els():[]).filter(Boolean);
     if(!els.length)return topic?scrollY:0;
     if(getComputedStyle(els[0]).position==='fixed')return scrollY;
@@ -991,6 +1009,7 @@ async function startTour(ids){
   const place=box=>{
     const vw=innerWidth,vh=innerHeight,w=Math.min(340,vw-32);
     card.style.width=w+'px';const h=card.offsetHeight;let top,left;
+    if(steps[T.i]&&steps[T.i].sheet){card.style.top='calc(10px + env(safe-area-inset-top,0px))';card.style.left=((vw-w)/2)+'px';return}
     if(!box){top=(vh-h)/2;left=(vw-w)/2}
     else{
       const below=vh-(box.t+box.h)-14,above=box.t-14;
@@ -1002,25 +1021,42 @@ async function startTour(ids){
   const draw=n=>{
     const s=steps[n],end=n===steps.length-1;
     const dots=steps.map((_,k)=>'<i class="'+(k===n?'on':'')+'"></i>').join('');
-    const showDots=!s.last&&steps.length>1;
+    const showDots=!s.last&&steps.length>1,many=steps.length>10;
+    card.classList.toggle('mini',!!s.sheet);
     let btns;
     if(s.w)btns='<button class="tour-back" data-a="'+s.backA+'">'+s.back+'</button><button class="tour-next" data-a="'+(s.last?'add':'next')+'">'+s.next+'</button>';
     else if(topic)btns=(n>0?'<button class="tour-back" data-a="back">Back</button>':'')+(end?'<button class="tour-back" data-a="help">More help</button><button class="tour-next" data-a="done">Got it</button>':'<button class="tour-next" data-a="next">Next</button>');
-    else btns=(n>0?'<button class="tour-back" data-a="back">Back</button>':'')+'<button class="tour-next" data-a="next">Next</button>';
+    else btns=(n>0?'<button class="tour-back" data-a="back">Back</button>':'')+'<button class="tour-next" data-a="next">'+(s.try?'Skip step':'Next')+'</button>';
     card.innerHTML='<div class="tour-in'+(s.w?'':' has-skip')+'">'
       +(n===0&&s.w?'<div class="tour-mark">'+logo+'</div>':'')
       +(s.w?'':'<button class="tour-skip" data-a="skip">'+(topic?'Close':'Skip tour')+'</button>')
       +(s.w?'':'<span class="tour-pill">Sample data</span>')
       +'<h3 id="tourT">'+s.title+'</h3><p id="tourD">'+s.text+'</p>'
-      +'<div class="tour-foot">'+(showDots?'<div class="tour-dots" aria-hidden="true">'+dots+'</div>':'')
+      +(s.try?'<div class="tour-try">'+s.try.hint+'</div>':'')
+      +'<div class="tour-foot">'+(showDots?(many?'<span class="tour-count" aria-hidden="true">'+(n+1)+' / '+steps.length+'</span>':'<div class="tour-dots" aria-hidden="true">'+dots+'</div>'):'')
       +'<div class="tour-btns">'+btns+'</div></div></div>';
   };
   async function go(n){
     const my=++T.token,s=steps[n];T.i=n;
     const alive=()=>tour===T&&my===T.token;
+    clearInterval(T.poll);T.poll=0;T.done=0;hole.classList.remove('pulse');shield.style.clipPath='';
     card.classList.add('hide');
     if((s.view==='act')!==av){if(s.view==='act')T.openedAct=true;(s.view==='act')?openAct():closeAct();await wait(RM?0:520);if(!alive())return}
+    {const cur=todayPH().slice(0,7),wm=s.month==='next'?nextM(cur):cur,wh=s.hv||'month',wf=s.view==='act'&&s.filt?s.filt:{type:'all',cat:null};
+      let ch=false;
+      if(month!==wm){month=wm;mode='month';ch=true}
+      if(hv!==wh){hv=wh;mode='view';ch=true}
+      if(filt.type!==wf.type||filt.cat!==wf.cat){filt={type:wf.type,cat:wf.cat};ch=true}
+      if(ch){dir=1;render();await wait(RM?0:520);if(!alive())return}}
     if(s.view!=='act'){const ws=s.slide||0;if(slide!==ws){dayFilter=null;slide=ws;mode='data';render();collapse();await wait(RM?0:520);if(!alive())return}}
+    if(s.sheet){
+      if(!sheetOn()){s.sheet();await wait(RM?0:560);if(!alive())return}
+      if(!sheetOn()){if(n<steps.length-1)go(n+1);return}
+      $('sheet').style.maxHeight='calc(100dvh - 210px - env(safe-area-inset-top,0px))';$('sheet').scrollTop=0;
+    }else{
+      if(sheetOn()){close_();await wait(RM?0:380);if(!alive())return}
+      $('sheet').style.maxHeight='';
+    }
     const y=scrollTarget(s),needScroll=Math.abs(y-scrollY)>4;
     if(!s.els||needScroll||(topic&&!T.shown)){collapse();if(T.shown)await wait(RM?0:300);if(!alive())return}
     if(needScroll){scrollTo({top:y,behavior:RM?'auto':'smooth'});await settle();if(!alive())return}
@@ -1030,10 +1066,26 @@ async function startTour(ids){
     hole.classList.add('on');
     place(box);T.box=box;
     void card.offsetWidth;card.classList.remove('hide');T.shown=1;
+    if(s.try){
+      shield.style.clipPath=holeClip(box);hole.classList.add('pulse');
+      const base=s.try.init?s.try.init():null;
+      T.poll=setInterval(()=>{
+        if(!alive()){clearInterval(T.poll);return}
+        let ok=false;try{ok=s.try.ok(base)}catch(e){}
+        if(!ok)return;
+        clearInterval(T.poll);T.poll=0;T.done=1;hole.classList.remove('pulse');
+        const dn=typeof s.try.done==='function'?s.try.done(base):s.try.done,tb=card.querySelector('.tour-try');
+        if(tb){tb.classList.add('ok');tb.textContent='\u2713 '+dn}
+        if(n<steps.length-1)setTimeout(()=>{if(alive())go(n+1)},RM?500:1400);
+      },150);
+    }
     const nb=card.querySelector('.tour-next');if(nb)nb.focus({preventScroll:true});
   }
   function end(openAdd,openHelpAfter){
     if(tour!==T)return;tour=null;
+    clearInterval(T.poll);shield.style.clipPath='';
+    if(sheetOn())close_();
+    $('sheet').style.maxHeight='';
     removeEventListener('keydown',onKey);removeEventListener('resize',onResize);
     card.classList.add('hide');hole.classList.remove('on');de.classList.remove('tour-lock');
     setTimeout(()=>{shield.remove();hole.remove();card.remove()},420);
@@ -1054,9 +1106,11 @@ async function startTour(ids){
   card.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(b)act(b.dataset.a)});
   function onKey(e){
     if(e.key==='Escape'){e.preventDefault();end()}
-    else if(e.key==='ArrowRight'){e.preventDefault();act('next')}
-    else if(e.key==='ArrowLeft'){e.preventDefault();act('back')}
+    else if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
+      const ae=document.activeElement;if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName))return;
+      e.preventDefault();act(e.key==='ArrowRight'?'next':'back')}
     else if(e.key==='Tab'){
+      if(steps[T.i]&&steps[T.i].try)return;
       const f=[...card.querySelectorAll('button')];if(!f.length)return;
       const a=document.activeElement,i=f.indexOf(a);
       if(e.shiftKey&&i<=0){e.preventDefault();f[f.length-1].focus()}
@@ -1067,6 +1121,7 @@ async function startTour(ids){
     if(tour!==T||T.i<0)return;
     const s=steps[T.i],box=boxOf(s);
     if(box)setHole(box.l,box.t,box.w,box.h,s.r||22);else setHole(innerWidth/2,innerHeight/2,0,0);
+    if(s.try&&!T.done)shield.style.clipPath=holeClip(box);
     place(box);
   }
   addEventListener('keydown',onKey);addEventListener('resize',onResize);
