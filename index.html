@@ -471,6 +471,7 @@ const save=()=>{
     alert('Penny could not save your data in this browser. Check that browser storage is enabled. Your latest changes may not persist.');
   }
   if(window.pennySync)window.pennySync();
+  else try{localStorage.setItem(KEY+':dirty','1')}catch(e){} // sync not running (offline start): merge these changes on the next sign-in
 };
 const $=id=>document.getElementById(id);
 const money=n=>'₱'+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});
@@ -1098,7 +1099,17 @@ async function start(FIREBASE_CONFIG){
   const txCol=()=>F.collection(db,'users',uid,'transactions');
   const bDoc=()=>F.doc(db,'users',uid,'meta','budgets');
   const cleanB=o=>{const r={};Object.keys(CATS).forEach(k=>{const v=+(o||{})[k];if(v>0)r[k]=v});return r};
-  const status=m=>m.fromCache?(navigator.onLine?show('off','Syncing…'):show('off','Offline','Changes will sync when you are back online')):show('on','Synced','Signed in — your data is saved to your account');
+  let pend=0,meta={fromCache:true,hasPendingWrites:false};
+  const hasPending=()=>pend>0||meta.hasPendingWrites;
+  const status=m=>{
+    if(m)meta=m;const has=hasPending();
+    if(!navigator.onLine)show('off',has?'Saved offline':'Offline',has?'Your changes are saved on this device and will sync when you are back online':'You are offline. Changes are saved on this device and will sync later');
+    else if(has)show('off','Syncing…','Uploading your changes');
+    else if(meta.fromCache)show('off','Connecting…');
+    else show('on','Synced','All changes are saved to your account');
+  };
+  addEventListener('online',()=>status());addEventListener('offline',()=>status());
+  const track=p=>{pend++;status();return p.then(()=>{pend--;status()},e=>{pend--;fail(e)})};
 
   window.pennySync=()=>{
     if(!uid)return;
@@ -1108,31 +1119,35 @@ async function start(FIREBASE_CONFIG){
         if(!r||r.type!==t.type||r.cat!==t.cat||r.amt!==t.amt||(r.note||'')!==(t.note||'')||r.date!==t.date){
           b.set(F.doc(txCol(),id),{id:t.id,type:t.type,cat:t.cat,amt:t.amt,note:t.note||'',date:t.date});n++}});
       remote.forEach((_,id)=>{if(!cur.has(id)){b.delete(F.doc(txCol(),id));n++}});
-      if(n)b.commit().catch(fail);
+      if(n)track(b.commit());
       const bj=JSON.stringify(cleanB(S.budgets));
-      if(bj!==rb){rb=bj;F.setDoc(bDoc(),cleanB(S.budgets)).catch(fail)}
+      if(bj!==rb){rb=bj;track(F.setDoc(bDoc(),cleanB(S.budgets)))}
     }catch(e){fail(e)}
   };
 
   function listen(u){
-    uid=u.uid;remote=new Map();rb=null;firstTx=firstB=true;show('off','Syncing…');
-    const mergeKey=KEY+':merged:'+uid;
-    unsubs.push(F.onSnapshot(txCol(),snap=>{
-      remote=new Map();const list=[];
+    uid=u.uid;remote=new Map();rb=null;firstTx=firstB=true;meta={fromCache:true,hasPendingWrites:false};show('off','Connecting…');
+    const mergeKey=KEY+':merged:'+uid,dirtyAtStart=!!ls(()=>localStorage.getItem(KEY+':dirty'));
+    unsubs.push(F.onSnapshot(txCol(),{includeMetadataChanges:true},snap=>{
+      remote=new Map();let list=[];
       snap.forEach(d=>{const x=d.data();remote.set(d.id,x);
         if(ALL[x.cat]&&(x.type==='exp'||x.type==='inc')&&x.amt>0&&x.date)list.push({id:Number(x.id??d.id),type:x.type,cat:x.cat,amt:+x.amt,note:x.note||'',date:x.date})});
-      let merged=false;
+      let merged=false;const first=firstTx;
       if(firstTx){firstTx=false;
-        if(!ls(()=>localStorage.getItem(mergeKey))){ // first sign-in on this device: keep local entries too
-          const ids=new Set(list.map(t=>String(t.id)));
-          S.tx.forEach(t=>{if(!ids.has(String(t.id)))list.push(t)});
-          ls(()=>localStorage.setItem(mergeKey,'1'));merged=true}}
+        // first sign-in on this device, or changes were made while sync could not run: keep the local entries too
+        if(!ls(()=>localStorage.getItem(mergeKey))||dirtyAtStart){
+          const m=new Map(list.map(t=>[String(t.id),t]));
+          S.tx.forEach(t=>{if(dirtyAtStart||!m.has(String(t.id)))m.set(String(t.id),t)});
+          list=[...m.values()];
+          ls(()=>{localStorage.setItem(mergeKey,'1');localStorage.removeItem(KEY+':dirty')});merged=true}}
       S.tx=list;cache();status(snap.metadata);
       if(merged)window.pennySync();
-      if(!snap.metadata.hasPendingWrites||merged)paint();
+      if(merged||first||(snap.docChanges().length&&!snap.metadata.hasPendingWrites))paint();
     },fail));
     unsubs.push(F.onSnapshot(bDoc(),snap=>{
-      if(snap.exists()){S.budgets=cleanB(snap.data());rb=JSON.stringify(S.budgets)}
+      if(snap.exists()){
+        if(firstB&&dirtyAtStart&&Object.keys(S.budgets).length){rb=JSON.stringify(cleanB(snap.data()));window.pennySync()} // offline edits win
+        else{S.budgets=cleanB(snap.data());rb=JSON.stringify(S.budgets)}}
       else{rb=JSON.stringify({});if(firstB&&Object.keys(S.budgets).length)window.pennySync();else S.budgets={}}
       firstB=false;cache();
       if(!snap.metadata.hasPendingWrites)paint();
@@ -1196,7 +1211,9 @@ async function start(FIREBASE_CONFIG){
   btn.onclick=toggleMenu;
   menu.onclick=async e=>{
     if(!e.target.closest('.out'))return;
-    closeMenu();await A.signOut(auth);
+    closeMenu();
+    if(hasPending()&&!confirm('Some changes have not synced yet. If you log out now they will be lost. Log out anyway?'))return;
+    await A.signOut(auth);
     S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));render();
   };
 

@@ -1,11 +1,15 @@
-const CACHE = 'penny-v6';
+const CACHE = 'penny-v7';
+const SDK = ['app', 'auth', 'firestore'].map(n => `https://www.gstatic.com/firebasejs/10.14.1/firebase-${n}.js`);
 const FILES = ['./', 'index.html', 'firebase-config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   // Cache each file on its own so one missing file can't break the install.
   e.waitUntil(
     caches.open(CACHE)
-      .then(c => Promise.all(FILES.map(f => c.add(f).catch(() => {}))))
+      .then(c => Promise.all([
+        ...FILES.map(f => c.add(f).catch(() => {})),
+        ...SDK.map(u => fetch(u).then(r => r.ok && c.put(u, r)).catch(() => {}))   // Firebase SDK: lets login and sync start offline
+      ]))
       .then(() => self.skipWaiting())
   );
 });
