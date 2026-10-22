@@ -351,6 +351,14 @@ h1{font-size:26px}h1 small{font-size:14px}
 @keyframes dlgOut{to{opacity:0;transform:translateY(8px) scale(.97)}}
 html #a2hs{align-items:center}
 }
+
+/* ===== Month picker: right-aligned on phones, icons truly centered ===== */
+.month button{position:relative;padding:0;flex:none}
+.month button .ic{position:absolute;top:50%;left:50%;width:16px;height:16px;transform:translate(-50%,-50%);margin:0}
+@media (max-width:1023.98px){
+  .hr{width:100%;justify-content:space-between}
+  .month{margin-left:auto}
+}
 </style>
 <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
@@ -419,6 +427,31 @@ html #a2hs{align-items:center}
 })();
 </script>
 <div id="auth" role="dialog" aria-modal="true" aria-labelledby="authT"><div id="authCard" hidden></div></div>
+<script>
+/* Boot guard: the login overlay must never sit there blank. It shows "Loading",
+   then a visible error (with the reason) if the app script crashes or stalls. */
+(function(){
+  var ov=document.getElementById('auth'),card=document.getElementById('authCard');
+  if(!ov||!card)return;
+  function put(title,msg,detail,retry){
+    card.hidden=false;card.innerHTML='';
+    var top=document.createElement('div');top.className='auth-top';top.id='bootMark';
+    var h=document.createElement('h2');h.id='authT';h.textContent=title;
+    var p=document.createElement('p');p.textContent=msg;
+    top.appendChild(h);top.appendChild(p);card.appendChild(top);
+    if(detail){var d=document.createElement('p');d.style.cssText='margin:12px 0 0;font-size:12px;color:var(--mute);word-break:break-word;text-align:center';d.textContent=detail;card.appendChild(d)}
+    if(retry){var b=document.createElement('button');b.className='save';b.type='button';b.style.marginTop='16px';b.textContent='Try again';b.onclick=function(){location.reload()};card.appendChild(b)}
+  }
+  function booting(){return !ov.hidden&&(card.hidden||!!card.querySelector('#bootMark'))}
+  var failed=false;
+  function fail(detail){if(failed||!booting())return;failed=true;put('Something went wrong','Penny could not finish starting.',detail,true)}
+  put('Loading Penny…','Just a moment.');
+  addEventListener('error',function(e){if(e&&e.message)fail(e.message+(e.lineno?' (line '+e.lineno+')':''))});
+  addEventListener('unhandledrejection',function(e){var r=e&&e.reason;fail(String(r&&r.message||r||'Unknown error'))});
+  setTimeout(function(){if(!failed&&booting()&&!card.querySelector('button'))put('Still loading…','This is taking longer than usual. Check your connection.')},8000);
+  setTimeout(function(){if(!failed&&booting())put('Penny is not responding','The app could not start on this device.','No response after 20 seconds. If you use Private Browsing or a content blocker, turn it off for this site.',true)},20000);
+})();
+</script>
 <div class="app">
   <header>
     <div class="brand"><h1><span class="logo"><svg class="ic" viewBox="0 0 24 24"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span><span><span id="greet">Penny</span><small id="gtip">Your budget buddy</small></span></h1></div>
@@ -1107,12 +1140,15 @@ async function start(FIREBASE_CONFIG){
   const cleanB=o=>{const r={};Object.keys(CATS).forEach(k=>{const v=+(o||{})[k];if(v>0)r[k]=v});return r};
   let pend=0,meta={fromCache:true,hasPendingWrites:false};
   const hasPending=()=>pend>0||meta.hasPendingWrites;
+  let connT=0,bad='';
+  const BADMSG='Penny cannot reach the cloud, so this device may be showing old data. Turn off your ad blocker or Brave Shields for this site, then reload.';
+  const watch=()=>{if(connT)return;connT=setTimeout(()=>{connT=0;if(uid&&meta.fromCache&&navigator.onLine&&!hasPending()){bad=BADMSG;show('err','Not syncing',BADMSG)}},12000)};
   const status=m=>{
     if(m)meta=m;const has=hasPending();
     if(!navigator.onLine)show('off',has?'Saved offline':'Offline',has?'Your changes are saved on this device and will sync when you are back online':'You are offline. Changes are saved on this device and will sync later');
     else if(has)show('off','Syncing…','Uploading your changes');
-    else if(meta.fromCache)show('off','Connecting…');
-    else show('on','Synced','All changes are saved to your account');
+    else if(meta.fromCache){if(bad)show('err','Not syncing',bad);else{show('off','Connecting…');watch()}}
+    else{clearTimeout(connT);connT=0;bad='';show('on','Synced','All changes are saved to your account')}
   };
   addEventListener('online',()=>status());addEventListener('offline',()=>status());
   const track=p=>{pend++;status();return p.then(()=>{pend--;status()},e=>{pend--;fail(e)})};
@@ -1132,7 +1168,7 @@ async function start(FIREBASE_CONFIG){
   };
 
   function listen(u){
-    uid=u.uid;remote=new Map();rb=null;firstTx=firstB=true;meta={fromCache:true,hasPendingWrites:false};show('off','Connecting…');
+    uid=u.uid;remote=new Map();rb=null;firstTx=firstB=true;meta={fromCache:true,hasPendingWrites:false};bad='';show('off','Connecting…');watch();
     const mergeKey=KEY+':merged:'+uid,dirtyAtStart=!!ls(()=>localStorage.getItem(KEY+':dirty'));
     unsubs.push(F.onSnapshot(txCol(),{includeMetadataChanges:true},snap=>{
       remote=new Map();let list=[];
@@ -1159,7 +1195,7 @@ async function start(FIREBASE_CONFIG){
       if(!snap.metadata.hasPendingWrites)paint();
     },fail));
   }
-  const stop=()=>{unsubs.forEach(f=>f());unsubs=[];uid=null;remote=new Map()};
+  const stop=()=>{unsubs.forEach(f=>f());unsubs=[];uid=null;remote=new Map();clearTimeout(connT);connT=0;bad=''};
 
   /* ----- login / create account screens ----- */
   const DOM='@penny-users.app',HAS=KEY+':has-account',LAST=KEY+':last-user',REM=KEY+':remember';
@@ -1227,7 +1263,7 @@ async function start(FIREBASE_CONFIG){
   }
 
   /* ----- logo menu: log out when signed in ----- */
-  menuHTML=()=>'<p>Signed in as <b>'+esc(who)+'</b></p><button class="out" type="button">Log out</button>';
+  menuHTML=()=>'<p>Signed in as <b>'+esc(who)+'</b></p>'+(bad?'<p>'+esc(bad)+'</p>':'')+'<button class="out" type="button">Log out</button>';
   btn.onclick=toggleMenu;
   menu.onclick=async e=>{
     if(!e.target.closest('.out'))return;
