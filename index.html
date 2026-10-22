@@ -869,7 +869,7 @@ $('add').onclick=addSheet;
 /* ===== Guided tour & help ===== */
 const TOUR_KEY=KEY+':tour-v1';
 let tour=null;
-const FULL=['welcome','month','glance','savings','categories','add','activity','help','final'];
+const FULL=['welcome','greeting','profile','month','glance','stats','warnings','savings','categories','budgets','activity','daily','income','add','quickadd','edit','filter','help','final'];
 const TOPICS=[
   {q:'How do I see all my entries?',s:['activity']},
   {q:'How do I add an expense?',s:['add','quickadd']},
@@ -880,7 +880,11 @@ const TOPICS=[
   {q:'How do I edit or delete an entry?',s:['edit']},
   {q:'How do I filter my activity?',s:['filter']},
   {q:'How do I see my total savings?',s:['savings']},
-  {q:'How do I switch months?',s:['month']}
+  {q:'How do I switch months?',s:['month']},
+  {q:'How do I see my spending per day?',s:['daily']},
+  {q:'What do the warnings mean?',s:['warnings']},
+  {q:'How do I change my name or log out?',s:['profile']},
+  {q:'What do the daily tips and greeting do?',s:['greeting']}
 ];
 function maybeTour(){
   try{if(localStorage.getItem(TOUR_KEY))return}catch(e){}
@@ -908,24 +912,28 @@ async function startTour(ids){
   const links=()=>root.querySelectorAll('.sec .link');
   const logo=(q('.logo')||{innerHTML:''}).innerHTML;
   const cat={
-    welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a 30-second tour to see how everything works.',next:'Start tour',back:'Skip',backA:'skip'},
-    month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today, or tap the calendar icon to pick any month and year.',els:()=>[q('.month')],r:99},
-    glance:{title:'Your month at a glance',text:'The ring shows how much of your budget you\u2019ve spent. Budget is money coming in, Spent is money going out, and Left is what\u2019s still yours to use.',els:()=>[kid(0)]},
-    savings:{title:'See your savings',text:'Tap Savings to see everything you\u2019ve saved so far, added up across all months. Tap again to come back.',els:()=>[q('.hnav')],r:99},
-    categories:{title:'Spending by category',text:'See where your money goes. Tap a category to see just its entries, or choose Set budgets to give each one a monthly limit.',els:()=>[kid(1),kid(2)],maxH:300},
-    add:{title:'Add an entry',text:'Tap Add whenever you spend or earn something. Pick a category, enter the amount, and save.',els:()=>[q('#add')],r:99},
-    activity:{title:'Switch views',text:'Use the < and > buttons to flip between Categories, Activity and Spending per day. In Activity, tap See all to open the full list, where you can filter by All, Spent and Budget.',els:()=>[kid(1),kid(2)],maxH:300},
-    help:{title:'Need a reminder?',text:'Tap this button any time, pick a question, and Penny will show you the answer.',els:()=>[q('#hfab')],r:99},
-    final:{w:1,last:1,title:'You\u2019re all set',text:'Start by adding your first budget or expense. Penny is here whenever you need it.',next:'Add my first entry',back:'Done',backA:'done'},
+    welcome:{w:1,title:'Welcome to Penny',text:'Your friendly budget buddy. Take a quick tour to see every feature and how it works.',next:'Start tour',back:'Skip',backA:'skip'},
+    greeting:{title:'Your daily greeting',text:'Penny greets you by name and shows a fresh budgeting tip every day. Small reminders help build good money habits.',els:()=>[q('.brand h1')],r:22,if:()=>!!q('.brand h1')},
+    profile:{title:'Your profile',text:'Tap the Penny logo to open your profile. You can change your name there, see your username, and log out. Log out stays pinned at the bottom of the screen.',els:()=>[q('.brand .logo')],r:16,if:()=>!!window.pennyAccount},
+    month:{title:'Pick a month',text:'Use the arrows to move between months. Tap the month name to jump back to today. Tap the calendar icon to pick any month and year; a dot marks months that already have entries, and Go to this month brings you back.',els:()=>[q('.month')],r:99},
+    glance:{title:'Your month at a glance',text:'The ring shows how much of your budget is left, with each expense taking a slice in its category\u2019s color. It turns red when you spend more than your budget.',els:()=>[q('#root .ring')],r:99},
+    warnings:{title:'Friendly warnings',text:'This note keeps you on track. It tells you when you pass 80% of your budget, when a category is about to reach its limit, when it\u2019s reached, and when you\u2019ve gone over.',els:()=>[q('#root .note')],r:14},
+    savings:{title:'See your savings',text:'Tap Savings to see everything you\u2019ve saved so far, added up across all months up to the one you\u2019re viewing. Tap This month to come back.',els:()=>[q('.hnav')],r:99},
+    categories:{title:'Spending by category',text:'See where your money goes. Each bar shows how much you\u2019ve spent in a category. Tap a category to see just its entries.',els:()=>[kid(1),kid(2)],maxH:300},
+    add:{title:'Add an entry',text:'Tap Add whenever you spend or receive money. Choose Expense or Budget, enter the amount (or tap +\u20b1100, +\u20b1500 and so on to build it up fast), pick a category, add an optional note, and set the date if it wasn\u2019t today. Then save.',els:()=>[q('#add')],r:99},
+    activity:{slide:1,title:'Recent activity',text:'Use the < and > buttons to flip between Categories, Activity and Spending per day. Activity shows your latest entries. Tap See all to open the full list.',els:()=>[kid(1),kid(2)],maxH:300},
+    daily:{slide:2,title:'Spending per day',text:'A calendar of your spending. Green days are light, yellow are moderate, and red days used a big share of your budget. Tap any day to see its entries, then tap the day label to clear it.',els:()=>[kid(1),kid(2)],maxH:420},
+    help:{title:'Need a reminder?',text:'Tap this button any time, pick a question, and Penny will show you the answer. You can also replay this full tour or add Penny to your home screen from there.',els:()=>[q('#hfab')],r:99},
+    final:{w:1,last:1,title:'You\u2019re all set',text:'Start by adding your first budget or expense. Your data syncs to your account, so it\u2019s there on any device you log in on.',next:'Add my first entry',back:'Done',backA:'done'},
     stats:{title:'Budget, Spent and Left',text:'Budget is money coming in. Spent is money going out. Left is what remains this month: budget minus spent. Tap Budget to add a budget entry, or Spent to see your expenses.',els:()=>[q('#root .stats')],r:18},
     ring:{title:'What the ring shows',text:'The ring starts as your full budget (100%). Each expense takes a slice in its category\u2019s color, and the green that\u2019s left is what you can still spend. It turns red when you go over.',els:()=>[q('#root .ring')],r:99},
     budgets:{title:'Set a spending limit',text:'Tap Set budgets, then enter a monthly limit for each category. Each category bar shows how close you are, and turns red if you go over.',els:()=>[links()[0]],r:99},
-    income:{title:'Add budget',text:'Tap Add budget, or the + next to Salary, Gift or another budget type. It goes straight into this month\u2019s Budget total.',els:()=>[links()[1]],r:99},
-    quickadd:{title:'Quick add',text:'You can also tap the + next to any category to add an entry to it directly.',els:()=>[q('#root .add')],r:99},
-    edit:{view:'act',title:'Edit or delete',text:'Once you\u2019ve added entries, tap one to edit it, or tap the x on its right to delete it.',els:()=>[q('#act .tx')||q('#act .card')],r:16,maxH:300},
+    income:{title:'Add budget',text:'This is money coming in, like Salary or Gift. Tap Add budget, or the + next to a type. Tap a type to see its entries. It all goes into this month\u2019s Budget total.',els:()=>[kid(3),kid(4)],maxH:300},
+    quickadd:{title:'Quick add',text:'You can also tap the + next to any category to add an entry to it directly, with the category already chosen.',els:()=>[q('#root .add')],r:99},
+    edit:{view:'act',title:'Edit or delete',text:'Tap an entry to change its amount, category, note or date, or to delete it. You can also tap the x on its right to delete it quickly.',els:()=>[q('#act .tx')||q('#act .card')],r:16,maxH:300},
     filter:{view:'act',title:'Filter your activity',text:'Use All, Spent and Budget to filter the list. To see one category, go back and tap it.',els:()=>[q('#act .tabs')],r:99}
   };
-  const steps=(ids||FULL).map(id=>cat[id]).filter(Boolean);
+  const steps=(ids||FULL).map(id=>cat[id]).filter(x=>x&&(!x.if||x.if()));
   const shield=document.createElement('div'),hole=document.createElement('div'),card=document.createElement('div');
   shield.className='tour-shield';hole.className='tour-hole nohole';card.className='tour-card hide';
   card.setAttribute('role','dialog');card.setAttribute('aria-modal','true');
@@ -985,6 +993,7 @@ async function startTour(ids){
     const alive=()=>tour===T&&my===T.token;
     card.classList.add('hide');
     if((s.view==='act')!==av){if(s.view==='act')T.openedAct=true;(s.view==='act')?openAct():closeAct();await wait(RM?0:520);if(!alive())return}
+    if(s.view!=='act'){const ws=s.slide||0;if(slide!==ws){dayFilter=null;slide=ws;mode='data';render();collapse();await wait(RM?0:520);if(!alive())return}}
     const y=scrollTarget(s),needScroll=Math.abs(y-scrollY)>4;
     if(!s.els||needScroll||(topic&&!T.shown)){collapse();if(T.shown)await wait(RM?0:300);if(!alive())return}
     if(needScroll){scrollTo({top:y,behavior:RM?'auto':'smooth'});await settle();if(!alive())return}
@@ -1001,6 +1010,7 @@ async function startTour(ids){
     removeEventListener('keydown',onKey);removeEventListener('resize',onResize);
     card.classList.add('hide');hole.classList.remove('on');de.classList.remove('tour-lock');
     setTimeout(()=>{shield.remove();hole.remove();card.remove()},420);
+    if(slide!==0&&!av){dayFilter=null;slide=0;mode='data';render()}
     if(av&&T.openedAct)closeAct();
     else if(!topic)scrollTo({top:0,behavior:RM?'auto':'smooth'});
     if(openAdd)setTimeout(addSheet,260);
@@ -1362,7 +1372,7 @@ async function start(FIREBASE_CONFIG){
 
   /* Wipe this device's view and go straight to the login screen */
   function toLogin(){
-    prof.hidden=true;prof.innerHTML='';
+    prof.hidden=true;prof.innerHTML='';window.pennyAccount=false;
     was=false;who='';btn.hidden=true;window.pennyName='';window.pennyShow='';
     try{window.pennyGreet()}catch(x){}
     ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
@@ -1381,7 +1391,7 @@ async function start(FIREBASE_CONFIG){
   A.onAuthStateChanged(auth,u=>{
     authReady=true;stop();closeMenu();
     if(u){
-      was=true;allowOffline=false;who=(u.email||'').split('@')[0];window.pennyName=who;window.pennyShow=u.displayName||'';window.pennyGreet();
+      was=true;allowOffline=false;who=(u.email||'').split('@')[0];window.pennyName=who;window.pennyAccount=true;window.pennyShow=u.displayName||'';window.pennyGreet();
       ls(()=>{sessionStorage.setItem(SIGNED,'1');if(localStorage.getItem(REM)!=='0')localStorage.setItem(SIGNED,'1');else localStorage.removeItem(SIGNED)});
       listen(u);hideAuth();
     }else{
