@@ -225,9 +225,31 @@ html.pre header,html.pre .fab,html.pre .hfab,html.pre #root>*{opacity:0}
 
 /* ===== First-run tour ===== */
 .brand{display:flex;align-items:center;gap:8px}
+.brand{position:relative}
+.logo.btn{cursor:pointer}.logo.btn:focus-visible{outline:2px solid var(--sage);outline-offset:3px}
+.umenu{position:absolute;left:0;top:calc(100% + 10px);z-index:30;min-width:210px;background:var(--card);border-radius:18px;padding:14px;box-shadow:0 14px 40px rgba(0,0,0,.2);animation:fadeIn .15s ease both}
+.umenu[hidden]{display:none}
+.umenu p{margin:0 0 10px;font-size:13px;color:var(--mute);font-weight:700}.umenu b{color:var(--ink);font-weight:800}
+.umenu .out{width:100%;border:0;border-radius:14px;background:var(--peach-soft);color:var(--bad);font:inherit;font-weight:800;padding:11px;cursor:pointer;transition:transform .15s ease}.umenu .out:active{transform:scale(.96)}
 .hr{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .acct{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:99px;background:var(--sage-soft);color:var(--sage);font:inherit;font-weight:800;font-size:13px;padding:9px 14px;cursor:pointer;transition:transform .15s ease,background-color .2s}
 .acct[hidden]{display:none}.acct:active{transform:scale(.94)}.acct:focus-visible{outline:2px solid var(--sage);outline-offset:2px}
+#auth{position:fixed;inset:0;z-index:80;background:var(--bg);display:grid;place-items:center;overflow:auto;padding:24px}
+#auth[hidden],#authCard[hidden]{display:none}
+#auth::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(700px 420px at 85% -5%,var(--sage-soft),transparent 65%)}
+#authCard{position:relative;width:min(400px,100%);background:var(--card);border-radius:26px;padding:30px 26px 24px;box-shadow:var(--shadow);animation:rise .6s var(--ease) backwards}
+.auth-top{text-align:center;margin-bottom:6px}
+.auth-logo{width:60px;height:60px;border-radius:20px;margin:0 auto 14px}.auth-logo .ic{width:32px;height:32px}
+.auth-top h2{margin:0;font-size:22px;font-weight:800}
+.auth-top p{margin:4px 0 0;font-size:14px;color:var(--mute)}
+.pw{position:relative}.pw input{padding-right:64px}
+.pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--sage);font:inherit;font-weight:800;font-size:13px;padding:8px 10px;border-radius:10px;cursor:pointer}
+.auth-check{display:flex;align-items:center;gap:10px;margin:16px 0 0;font-size:14px;color:var(--ink);font-weight:700;cursor:pointer}
+.auth-check input{width:20px;height:20px;padding:0;margin:0;border:0;accent-color:var(--sage);flex:none}
+.auth-err{margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(217,112,90,.16);box-shadow:inset 0 0 0 1.5px rgba(217,112,90,.5);font-size:13.5px;font-weight:700}
+.auth-err[hidden]{display:none}
+#auth .save[disabled]{opacity:.65;cursor:default}
+.auth-sw{text-align:center;margin-top:18px;font-size:14px;color:var(--mute);font-weight:700}
 .acct .dot{width:8px;height:8px;border-radius:50%;background:var(--mute)}.acct.on .dot{background:var(--sage)}.acct.off .dot{background:var(--sun)}.acct.err .dot{background:var(--bad)}
 .hfab{position:fixed;left:max(18px,calc(50% - 242px));bottom:calc(20px + env(safe-area-inset-bottom,0px));width:50px;height:50px;border-radius:50%;border:0;background:var(--card);color:var(--sage);font:inherit;font-weight:800;font-size:21px;box-shadow:0 8px 22px rgba(80,60,30,.16);cursor:pointer;display:grid;place-items:center;transition:transform .15s ease,color .2s,box-shadow .2s}
 .hfab:hover{box-shadow:0 12px 26px rgba(80,60,30,.22)}.hfab:active{transform:scale(.9)}
@@ -390,6 +412,7 @@ html #a2hs{align-items:center}
   requestAnimationFrame(tick);
 })();
 </script>
+<div id="auth" role="dialog" aria-modal="true" aria-labelledby="authT"><div id="authCard" hidden></div></div>
 <div class="app">
   <header>
     <div class="brand"><h1><span class="logo"><svg class="ic" viewBox="0 0 24 24"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span><span>Penny<small>Your budget buddy</small></span></h1></div>
@@ -777,6 +800,7 @@ const TOPICS=[
 ];
 function maybeTour(){
   try{if(localStorage.getItem(TOUR_KEY))return}catch(e){}
+  const ao=$('auth');if(ao&&!ao.hidden){window.pennyTourPending=1;return}
   if($('bg').classList.contains('on'))return;
   startTour();
 }
@@ -997,13 +1021,43 @@ render();
 })();
 </script>
 <script type="module">
-/* ===== Firestore sync (Google sign-in) =====
+/* ===== Firestore sync + username/password login =====
    The Firebase config lives in firebase-config.js. If that file is missing or its
-   apiKey is empty, Penny stays local-only. */
-const btn=document.getElementById('acct');
-import('./firebase-config.js')
-  .then(m=>{if(m.FIREBASE_CONFIG&&m.FIREBASE_CONFIG.apiKey)return start(m.FIREBASE_CONFIG)})
-  .catch(e=>console.warn('Penny sync is off (no firebase-config.js or it failed to start)',e));
+   apiKey is empty, Penny stays local-only (no login screen). */
+const btn=document.getElementById('acct'),ov=document.getElementById('auth'),card=document.getElementById('authCard');
+/* ----- logo menu (works in both modes) ----- */
+const logo=document.querySelector('.brand .logo'),menu=document.createElement('div');
+menu.className='umenu';menu.hidden=true;document.querySelector('.brand').appendChild(menu);
+logo.classList.add('btn');logo.setAttribute('role','button');logo.tabIndex=0;
+logo.setAttribute('aria-haspopup','true');logo.setAttribute('aria-label','Account menu');
+let menuHTML=()=>'<p>Cloud sync is off, so Penny saves your budget only on this device.</p><p style="margin:0">To turn on login, add your Firebase details to <b>firebase-config.js</b>.</p>';
+const closeMenu=()=>{menu.hidden=true;logo.setAttribute('aria-expanded','false')};
+const toggleMenu=e=>{if(e)e.stopPropagation();if(menu.hidden){menu.innerHTML=menuHTML();menu.hidden=false}else menu.hidden=true;logo.setAttribute('aria-expanded',String(!menu.hidden))};
+logo.onclick=toggleMenu;
+logo.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleMenu(e)}};
+document.addEventListener('click',e=>{if(!menu.hidden&&!menu.contains(e.target))closeMenu()});
+addEventListener('keydown',e=>{if(e.key==='Escape')closeMenu()});
+const SIGNED=KEY+':signed';
+const tl=f=>{try{return f()}catch(e){return null}};
+const gated=[...document.querySelectorAll('.app,#add,#hfab')];
+const lockApp=on=>gated.forEach(el=>on?el.setAttribute('inert',''):el.removeAttribute('inert')); // no keyboard access behind the login screen
+let locked=false,allowOffline=false,authReady=false;
+const showAuth=()=>{ov.hidden=false;lockApp(true)};
+const hideAuth=()=>{lockApp(false);if(ov.hidden)return;ov.hidden=true;if(window.pennyTourPending){window.pennyTourPending=0;maybeTour()}};
+function blocked(){ // Firebase could not load and the user has not logged in before
+  showAuth();card.hidden=false;
+  card.innerHTML=`<div class="auth-top"><span class="logo auth-logo">${ic('sprout')}</span><h2 id="authT">Can’t connect</h2><p>Penny needs an internet connection to log you in.</p></div><button class="save" id="aRetry" type="button">Try again</button>`;
+  card.querySelector('#aRetry').onclick=()=>location.reload();
+}
+function offlineFallback(){ // offline: only let in someone who was already logged in on this device
+  if(tl(()=>localStorage.getItem(SIGNED)||sessionStorage.getItem(SIGNED))){allowOffline=true;hideAuth()}else blocked();
+}
+setTimeout(()=>{if(!authReady)locked?offlineFallback():hideAuth()},12000);
+import('./firebase-config.js').then(m=>{
+  if(!(m.FIREBASE_CONFIG&&m.FIREBASE_CONFIG.apiKey)){hideAuth();return}
+  locked=true;
+  return start(m.FIREBASE_CONFIG).catch(e=>{console.warn('Penny sync could not start',e);if(!authReady)offlineFallback()});
+}).catch(e=>{console.warn('Penny sync is off (no firebase-config.js)',e);hideAuth()});
 
 async function start(FIREBASE_CONFIG){
   const B='https://www.gstatic.com/firebasejs/10.14.1/';
@@ -1013,11 +1067,11 @@ async function start(FIREBASE_CONFIG){
   try{db=F.initializeFirestore(app,{localCache:F.persistentLocalCache({tabManager:F.persistentMultipleTabManager()})})}
   catch(e){db=F.getFirestore(app)}
 
-  let uid=null,unsubs=[],remote=new Map(),rb=null,firstTx=true,firstB=true;
+  let uid=null,who='',unsubs=[],remote=new Map(),rb=null,firstTx=true,firstB=true;
   const ls=f=>{try{return f()}catch(e){return null}};
   const cache=()=>ls(()=>localStorage.setItem(KEY,JSON.stringify(S)));
   const paint=()=>afterSplash(render);
-  const show=(cls,txt,title)=>{btn.hidden=false;btn.className='acct '+cls;btn.innerHTML='<i class="dot"></i><span></span>';btn.lastChild.textContent=txt;btn.title=title||''};
+  const show=(cls,txt,title)=>{btn.hidden=false;btn.className='acct '+cls;btn.innerHTML='<i class="dot"></i><span></span>';btn.lastChild.textContent=txt;btn.title=(title||'')+(who?(title?' · ':'')+'Signed in as '+who+'':'')};
   const fail=e=>{console.error('Penny sync error',e);show('err','Sync error',e&&e.message||'')};
   const txCol=()=>F.collection(db,'users',uid,'transactions');
   const bDoc=()=>F.doc(db,'users',uid,'meta','budgets');
@@ -1064,22 +1118,89 @@ async function start(FIREBASE_CONFIG){
   }
   const stop=()=>{unsubs.forEach(f=>f());unsubs=[];uid=null;remote=new Map()};
 
-  A.onAuthStateChanged(auth,u=>{stop();if(u)listen(u);else show('','Sign in','Sign in to sync your budget across devices')});
+  /* ----- login / create account screens ----- */
+  const DOM='@penny-users.app',HAS=KEY+':has-account',LAST=KEY+':last-user',REM=KEY+':remember';
+  const msgFor=(e,create)=>({
+    'auth/email-already-in-use':'That username is already taken. Try another one.',
+    'auth/weak-password':'Password must be at least 6 characters.',
+    'auth/invalid-credential':'Wrong username or password. No account yet? Tap Create account below.',
+    'auth/user-not-found':'No account with that username. Tap Create account below.',
+    'auth/wrong-password':'Wrong username or password.',
+    'auth/too-many-requests':'Too many attempts. Please wait a moment and try again.',
+    'auth/network-request-failed':'No connection. Check your internet and try again.',
+    'auth/operation-not-allowed':'Email/Password sign-in is not enabled in Firebase yet (Authentication > Sign-in method).',
+    'auth/unauthorized-domain':'This site is not in Firebase Authorized domains yet.'
+  })[e.code]||('Something went wrong ('+(e.code||e.message)+').');
 
-  btn.onclick=async()=>{
-    if(uid){
-      if(!confirm('Sign out? Your data stays saved in your account and returns when you sign in again.'))return;
-      await A.signOut(auth);
-      S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));render();return;
-    }
-    const p=new A.GoogleAuthProvider();
-    try{await A.signInWithPopup(auth,p)}
-    catch(e){
-      if(e.code==='auth/popup-closed-by-user')return;
-      if(e.code==='auth/popup-blocked'||e.code==='auth/cancelled-popup-request')return A.signInWithRedirect(auth,p);
-      alert('Could not sign in ('+(e.code||e.message)+'). If this says unauthorized-domain, add this site under Firebase Authentication > Settings > Authorized domains.');
-    }
+  function draw(mode){
+    const create=mode==='create',rem=ls(()=>localStorage.getItem(REM))!=='0',last=create?'':(ls(()=>localStorage.getItem(LAST))||'');
+    card.hidden=false;
+    card.innerHTML=`<div class="auth-top"><span class="logo auth-logo">${ic('sprout')}</span>
+      <h2 id="authT">${create?'Create your account':'Welcome back'}</h2>
+      <p>${create?'Pick a username and password to start saving your budget.':'Log in to see your budget.'}</p></div>
+    <form id="authForm" novalidate>
+      <label for="au">Username</label>
+      <input id="au" name="username" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20" value="${esc(last)}">
+      <label for="ap">Password</label>
+      <div class="pw"><input id="ap" name="password" type="password" autocomplete="${create?'new-password':'current-password'}"><button type="button" id="apShow" aria-label="Show password">Show</button></div>
+      ${create?'<label for="ap2">Confirm password</label><input id="ap2" name="confirm" type="password" autocomplete="new-password">':''}
+      <label class="auth-check"><input type="checkbox" name="remember" ${rem?'checked':''}><span>Save password</span></label>
+      <div class="auth-err" id="aErr" role="alert" hidden></div>
+      <button class="save" id="aGo" type="submit">${create?'Create account':'Log in'}</button>
+    </form>
+    <div class="auth-sw">${create?'Already have an account?':'No account yet?'} <button class="link" id="aSw" type="button">${create?'Log in':'Create account'}</button></div>`;
+    const f=card.querySelector('#authForm'),err=card.querySelector('#aErr'),go=card.querySelector('#aGo');
+    const say=t=>{err.textContent=t;err.hidden=!t};
+    card.querySelector('#apShow').onclick=e=>{const i=card.querySelector('#ap'),on=i.type==='password';i.type=on?'text':'password';e.currentTarget.textContent=on?'Hide':'Show'};
+    card.querySelector('#aSw').onclick=()=>draw(create?'login':'create');
+    f.onsubmit=async e=>{
+      e.preventDefault();say('');
+      const E=f.elements,u=E.username.value.trim().toLowerCase(),pw=E.password.value,keep=E.remember.checked;
+      if(!/^[a-z0-9._-]{3,20}$/.test(u))return say('Username must be 3–20 characters: letters, numbers, dot, dash or underscore.');
+      if(pw.length<6)return say('Password must be at least 6 characters.');
+      if(create&&pw!==E.confirm.value)return say('Passwords do not match.');
+      go.disabled=true;go.textContent=create?'Creating…':'Logging in…';
+      try{
+        await A.setPersistence(auth,keep?A.browserLocalPersistence:A.browserSessionPersistence);
+        if(create)await A.createUserWithEmailAndPassword(auth,u+DOM,pw);else await A.signInWithEmailAndPassword(auth,u+DOM,pw);
+        ls(()=>{localStorage.setItem(HAS,'1');localStorage.setItem(REM,keep?'1':'0');if(keep)localStorage.setItem(LAST,u);else localStorage.removeItem(LAST)});
+      }catch(x){say(msgFor(x,create));go.disabled=false;go.textContent=create?'Create account':'Log in'}
+    };
+    setTimeout(()=>{const t=card.querySelector(last?'#ap':'#au');if(t)t.focus({preventScroll:true})},50);
+  }
+
+  /* ----- logo menu: log out when signed in ----- */
+  menuHTML=()=>'<p>Signed in as <b>'+esc(who)+'</b></p><button class="out" type="button">Log out</button>';
+  btn.onclick=toggleMenu;
+  menu.onclick=async e=>{
+    if(!e.target.closest('.out'))return;
+    closeMenu();await A.signOut(auth);
+    S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));render();
   };
+
+  let was=false;
+  A.onAuthStateChanged(auth,u=>{
+    authReady=true;stop();closeMenu();
+    if(u){
+      was=true;allowOffline=false;who=(u.email||'').split('@')[0];
+      ls(()=>{sessionStorage.setItem(SIGNED,'1');if(localStorage.getItem(REM)!=='0')localStorage.setItem(SIGNED,'1');else localStorage.removeItem(SIGNED)});
+      listen(u);hideAuth();
+    }else{
+      if(was){was=false;S.tx=[];S.budgets={};ls(()=>localStorage.removeItem(KEY));render()} // logged out (maybe in another tab): wipe this view
+      who='';btn.hidden=true;ls(()=>{sessionStorage.removeItem(SIGNED);localStorage.removeItem(SIGNED)});
+      showAuth();draw(ls(()=>localStorage.getItem(HAS))?'login':'create');
+    }
+  });
+
+  /* Guard: anyone who is not logged in always lands on the login screen */
+  const enforce=()=>{
+    if(!authReady||uid||allowOffline||auth.currentUser)return;
+    showAuth();if(card.hidden)draw(ls(()=>localStorage.getItem(HAS))?'login':'create');
+  };
+  new MutationObserver(()=>{if(ov.hidden)enforce()}).observe(ov,{attributes:true,attributeFilter:['hidden']});
+  addEventListener('pageshow',enforce);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)enforce()});
+
 }
 </script>
 </body>
