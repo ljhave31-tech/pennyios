@@ -5,8 +5,8 @@
 // Note: these values identify your project and are safe to commit to a public repo.
 // Your data is protected by Firestore security rules, not by hiding this file.
 export const FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  appId: ''
+  apiKey: 'AIzaSyCEp81wDdbYxPgv9BejDJK_KSJq883dnOg',
+  authDomain: 'penny-f1644.firebaseapp.com',
+  projectId: 'penny-f1644',
+  appId: '1:538762442808:web:4f63c4ed9da64900c68ecd'
 };
